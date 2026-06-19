@@ -14,3 +14,4 @@
 # Python build artifacts (from dogfooding the loop in this repo)
 __pycache__/
 *.pyc
+.pytest_cache/
