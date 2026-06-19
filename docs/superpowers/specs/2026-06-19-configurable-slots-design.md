@@ -34,8 +34,12 @@ Chosen fillers (defaults):
 | `validate` | `brainstorming` | superpowers (`obra/superpowers`) | opus |
 | `architect` | `writing-plans` | superpowers | opus |
 | `implementer` | `feature-dev` | claude-plugins-official `feature-dev` | opus |
-| `reviewer` | `thermonuclear` | local personal skill `~/.claude/skills/.thermo-nuclear-code-quality-review` | sonnet |
-| `final_reviewer` | `code-review` | claude-plugins-official `code-review` | sonnet |
+| `reviewers` (per iteration, ≥1) | `staff-review` + `thermonuclear` | `apify/agent-skills-internal`; local personal skill `~/.claude/skills/.thermo-nuclear-code-quality-review` | sonnet |
+| `final_reviewers` (after convergence) | `code-review` | claude-plugins-official `code-review` | sonnet |
+
+The `reviewers` and `final_reviewers` slots are **lists** — each runs as an
+independent subagent (parallel, blind to `claim.md` and to each other), so multiple
+lenses can review the same diff.
 
 ---
 
@@ -44,14 +48,16 @@ Chosen fillers (defaults):
 1. **Depth = vendor + dispatch (option B).** Chosen skills are copied into the repo
    so the loop runs unmodified on web; the orchestrator dispatches real subagents on
    configured models.
-2. **Two reviewers, different lenses — over a correctness oracle.** Every inner
-   iteration runs the deterministic **oracle** (tests/lint = the correctness ground
-   truth) plus **`thermonuclear`** (maintainability: abstraction quality, file-size
-   limits, spaghetti-branch growth, "code-judo" structural simplification). After the
-   inner loop converges, **`code-review`** runs once as a fresh second-angle pass
-   (bugs, CLAUDE.md compliance, historical/PR context, confidence-scored). Net
-   coverage: oracle = *does it work*, thermonuclear = *is it clean/simple*, code-review
-   = *is it correct & compliant beyond the tests*.
+2. **Multiple reviewers, different lenses — over a correctness oracle.** Every inner
+   iteration runs the deterministic **oracle** (tests/lint = correctness ground truth)
+   plus the per-iteration `reviewers` list — by default **`staff-review`** (correctness,
+   edge cases, test coverage) **and** **`thermonuclear`** (maintainability: abstraction
+   quality, file-size limits, spaghetti-branch growth, "code-judo" simplification),
+   running as independent parallel subagents. After the inner loop converges,
+   **`code-review`** runs once as a fresh second-angle pass (bugs, CLAUDE.md compliance,
+   historical/PR context, confidence-scored). Net coverage: oracle = *does it work*,
+   staff-review = *is it correct & well-tested*, thermonuclear = *is it clean/simple*,
+   code-review = *a final independent correctness/compliance sweep*.
 3. **Final-review findings feed back into the loop (option A).** code-review is not
    advisory — actionable findings reopen the inner loop until it comes back clean,
    consistent with devforge's "nothing reaches the gate noted-but-unhandled" rule.
@@ -75,9 +81,14 @@ Chosen fillers (defaults):
   "slots": {
     "validate":       { "filler": "brainstorming",  "model": "opus" },
     "architect":      { "filler": "writing-plans",   "model": "opus" },
-    "implementer":    { "filler": "feature-dev",     "model": "opus" },
-    "reviewer":       { "filler": "thermonuclear",   "model": "sonnet" },
-    "final_reviewer": { "filler": "code-review",     "model": "sonnet" }
+    "implementer":     { "filler": "feature-dev", "model": "opus" },
+    "reviewers": [
+      { "filler": "staff-review",  "model": "sonnet" },
+      { "filler": "thermonuclear", "model": "sonnet" }
+    ],
+    "final_reviewers": [
+      { "filler": "code-review",   "model": "sonnet" }
+    ]
   },
   "limits": { "inner_iterations": 3, "final_review_rounds": 2 },
   "plan_mode_gate": true
@@ -105,11 +116,13 @@ a filler name to its adapter skill directory.
 | `validate` | `brainstorming`, `builtin` |
 | `architect` | `writing-plans`, `builtin` |
 | `implementer` | `feature-dev`, `builtin` |
-| `reviewer` | `thermonuclear`, `code-review`, `builtin` |
-| `final_reviewer` | `code-review`, `thermonuclear`, `none` |
+| `reviewers` (list) | `staff-review`, `thermonuclear`, `code-review`, `builtin` |
+| `final_reviewers` (list) | `code-review`, `staff-review`, `thermonuclear` |
 
 `builtin` = devforge's current inline skeleton step for that phase (always available,
-no vendored engine). `none` (final_reviewer only) skips the final pass.
+no vendored engine). An **empty `final_reviewers` list** skips the final pass. A
+duplicate filler within one list is rejected. Each reviewer entry resolves to the same
+adapter regardless of which list it appears in.
 
 ---
 
@@ -125,30 +138,37 @@ architect (architect slot) ─┘ → design.md
    ┌─ inner loop (iteration N = 1..inner_iterations) ───────────────────────┐
    │ implementer slot  → edits source, writes iter-N/claim.md               │
    │ orchestrator      → oracle (tests/lint) + git diff → diff.patch        │
-   │ reviewer slot     → reads diff.patch+results (blind to claim) → review │
-   │ converged? green AND every review.md finding resolved                  │
+   │ reviewers (∥)     → each reads diff.patch+results (blind to claim and  │
+   │                     to each other) → iter-N/review-<filler>.md         │
+   │ converged? green AND every finding across ALL review-*.md resolved     │
    └───────────────────────────────────────────────────────────────────────┘
         │ converged
-   final_reviewer slot → reads diff.patch + working tree → final-review.md
+   final_reviewers (∥) → each reads diff.patch + working tree → iter-N/final-review-<filler>.md
         │
-   actionable findings? ── yes ──► reopen inner loop (counts against
-        │                          final_review_rounds; escalate if exceeded)
-        │ no / none
+   actionable findings in any? ── yes ──► reopen inner loop (counts against
+        │                                 final_review_rounds; escalate if exceeded)
+        │ none (or empty list)
    PRE-MERGE GATE  → rich diff presentation, /devforge-approve-merge → merge.approved
         │
    finish (commit, PR)
 ```
 
-- **Inner-loop convergence** is unchanged from today: oracle green **and** every
-  finding in the latest `review.md` fixed-or-explicitly-justified (nits included).
-  Escalate to the human after `inner_iterations` without converging.
-- **Final review** runs once after convergence. Its actionable findings (blocker /
-  major / minor / nit) become the finding set for a fresh inner iteration
-  (implement → oracle → thermonuclear), after which `code-review` re-runs. This
-  reopen-cycle is bounded by `final_review_rounds`; exceeding it escalates.
-- New durable file: **`.devforge/iter-N/final-review.md`** (same format as
-  `review.md`, first line `VERDICT: PASS|FAIL`), committed. The `final_reviewer`
-  reads `diff.patch` + working tree, **never `claim.md`** — same independence rule.
+- **Reviewers run in parallel** each iteration, one independent subagent per entry in
+  the `reviewers` list, each blind to `claim.md` and to the others. Each writes its own
+  `iter-N/review-<filler>.md` (e.g. `review-staff-review.md`, `review-thermonuclear.md`),
+  first line `VERDICT: PASS|FAIL`, severity-tagged findings. The orchestrator
+  aggregates findings across all of them.
+- **Inner-loop convergence:** oracle green **and** every finding across **all**
+  `review-*.md` fixed-or-explicitly-justified (nits included). Where two reviewers
+  pull in opposite directions (e.g. thermonuclear wants a structural restructure that a
+  correctness reviewer would keep minimal), the orchestrator records the reconciliation
+  in the next `claim.md`. Escalate after `inner_iterations` without converging.
+- **Final review** runs once after convergence: each entry in `final_reviewers` as a
+  parallel subagent → `iter-N/final-review-<filler>.md` (same format and independence
+  rule — reads `diff.patch` + working tree, never `claim.md`). Actionable findings from
+  any of them become the finding set for a fresh inner iteration (implement → oracle →
+  reviewers), after which the final reviewers re-run. Bounded by `final_review_rounds`;
+  exceeding it escalates. An empty `final_reviewers` list skips this stage.
 
 ---
 
@@ -164,8 +184,9 @@ architect (architect slot) ─┘ → design.md
   devforge-validate-brainstorm/  adapter → vendored brainstorming, gate/commit stripped
   devforge-architect-plans/      adapter → vendored writing-plans, writes design.md
   devforge-impl-feature-dev/     adapter → feature-dev implement-only, fed approved design.md
-  devforge-review-thermo/        adapter → thermonuclear maintainability review on diff.patch → review.md
-  devforge-review-code/          adapter → code-review engine retargeted PR→diff.patch → final-review.md
+  devforge-review-staff/         adapter → staff-review (correctness) on diff.patch → review-staff-review.md
+  devforge-review-thermo/        adapter → thermonuclear (maintainability) on diff.patch → review-thermonuclear.md
+  devforge-review-code/          adapter → code-review engine retargeted PR→diff.patch → final-review-code-review.md
   _vendored/                     faithful upstream copies the adapters delegate to
 .claude/agents/
   devforge-code-explorer.md      feature-dev's agents, vendored so they're dispatchable on web
@@ -180,8 +201,8 @@ Each adapter SKILL.md:
 1. **Reads** its slot inputs from `.devforge/` (e.g. reviewer reads `task.md`,
    `design.md`, `iter-N/diff.patch`, `iter-N/test-results.txt`).
 2. **Drives** the vendored engine in `_vendored/…`, scoped to devforge's job.
-3. **Writes** the contract output (`claim.md`, `review.md`, or `final-review.md`) in
-   the required format.
+3. **Writes** the contract output (`claim.md`, `review-<filler>.md`, or
+   `final-review-<filler>.md`) in the required format.
 
 Adapters are thin (instructions only); `_vendored/` holds untouched engines so a
 re-sync is a clean diff. Per-slot scoping notes:
@@ -196,21 +217,26 @@ re-sync is a clean diff. Per-slot scoping notes:
 - **`implementer` ← feature-dev:** feed it the *already-approved* `design.md` as the
   spec; **skip** feature-dev's Discovery / clarifying-questions / architecture phases
   (devforge already did those and got human approval). Reuse its `code-explorer` /
-  `code-architect` agents for grounding only. Address prior `review.md` findings; write
-  `claim.md`. Never edit/delete tests.
-- **`reviewer` ← thermonuclear:** an unusually strict *maintainability* review
+  `code-architect` agents for grounding only. Address prior `review-*.md` /
+  `final-review-*.md` findings; write `claim.md`. Never edit/delete tests.
+- **`reviewers[*]` ← staff-review:** clean fit — reviews the branch/working-tree diff
+  for correctness / edge cases / test coverage, emits severity-tagged findings. Adapter
+  points it at `diff.patch` and writes `review-staff-review.md` (`VERDICT:` first line),
+  blind to `claim.md`.
+- **`reviewers[*]` ← thermonuclear:** an unusually strict *maintainability* review
   (abstraction quality, 1k-line file ceiling, spaghetti-branch growth, "code-judo"
   simplification). Clean fit — already reviews the current branch's changes. Adapter
   points it at `diff.patch` and maps its prioritized findings + approval-bar
-  presumptive-blockers onto devforge's `review.md` format (`VERDICT:` first line,
+  presumptive-blockers onto `review-thermonuclear.md` (`VERDICT:` first line,
   severity-tagged), blind to `claim.md`. Note: thermonuclear sets
   `disable-model-invocation: true` upstream; the adapter does not invoke it as a Skill
   — it feeds the vendored instruction text to the reviewer subagent, so the flag is
   irrelevant to dispatch (recorded in `VENDORED.md`).
-- **`final_reviewer` ← code-review:** keep its parallel multi-agent + confidence-score
-  engine; **retarget** it from "an existing PR via `gh pr diff`" to **`diff.patch` +
-  the working tree**, and **redirect** its output from a `gh pr comment` into
-  `final-review.md`. Drop the PR-eligibility and `gh`-posting steps.
+- **`final_reviewers[*]` ← code-review:** keep its parallel multi-agent +
+  confidence-score engine; **retarget** it from "an existing PR via `gh pr diff`" to
+  **`diff.patch` + the working tree**, and **redirect** its output from a `gh pr
+  comment` into `final-review-code-review.md`. Drop the PR-eligibility and `gh`-posting
+  steps.
 
 ### `VENDORED.md`
 
@@ -225,15 +251,18 @@ A human-facing doc that makes the slots and their options clear. Contents:
 
 1. **What a slot is** — a role defined by the files it reads/writes; the filler is
    config. The oracle (tests/lint) is *not* a slot.
-2. **Per-slot table** — for each of the five slots: what it reads, what it writes, the
-   allowed fillers, a one-line description of each filler, and the recommended model.
+2. **Per-slot table** — for each slot (`validate`, `architect`, `implementer`,
+   `reviewers`, `final_reviewers`): what it reads, what it writes, the allowed fillers,
+   a one-line description of each filler, and the recommended model.
 3. **Example configs (ready to paste):**
-   - **`default`** — the table in §3.
-   - **`fast-cheap`** — smaller models, `final_reviewer: none`, `inner_iterations: 2`.
-   - **`max-rigor`** — opus across review slots, `final_review_rounds: 3`, both
-     reviewers on the strongest tier.
-   - **`builtin-only`** — every slot `builtin` (the current skeleton; no vendored
-     engines) for a dependency-free smoke test.
+   - **`default`** — the schema in §3 (reviewers = staff-review + thermonuclear; final
+     = code-review).
+   - **`fast-cheap`** — smaller models, single per-iteration reviewer
+     (`reviewers: [staff-review]`), empty `final_reviewers`, `inner_iterations: 2`.
+   - **`max-rigor`** — opus across review slots, all three lenses per iteration
+     (`reviewers: [staff-review, thermonuclear, code-review]`), `final_review_rounds: 3`.
+   - **`builtin-only`** — every slot `builtin` / empty final list (the current skeleton;
+     no vendored engines) for a dependency-free smoke test.
 4. **How overrides work** — `config.local.json` shallow-merge; the validation/error
    behavior.
 
@@ -256,9 +285,11 @@ The README's "Planned — enrichment" section is updated to "Built" and points h
 devforge is skills (markdown), so "tests" are structural + a dogfood run:
 
 1. **Config validation** — unit-style checks (the existing `tests/` Python harness or a
-   small script): valid config parses; unknown filler errors; reviewer-only filler in
-   implementer slot errors; `config.local.json` overrides merge correctly; missing
-   config yields defaults.
+   small script): valid config parses; unknown filler errors; a filler not allowed in a
+   slot errors (e.g. `feature-dev` in `reviewers`); `reviewers`/`final_reviewers` accept
+   lists; a duplicate filler within one list errors; an empty `final_reviewers` list is
+   valid and skips the final stage; `config.local.json` overrides merge correctly;
+   missing config yields defaults.
 2. **Vendoring integrity** — every `filler` in the registry resolves to an existing
    adapter dir; every adapter references an existing `_vendored/` engine; `VENDORED.md`
    has an entry per vendored item. **No-install guard:** no committed skill/adapter
@@ -267,5 +298,5 @@ devforge is skills (markdown), so "tests" are structural + a dogfood run:
    git-tracked (not gitignored).
 3. **Dogfood** — run `/devforge` on a small task in this repo end-to-end with the
    `default` config and again with `builtin-only`, confirming both gates fire, the
-   two-reviewer flow runs, and `final-review.md` is produced.
+   multi-reviewer flow runs, and `final-review-*.md` is produced.
 ```
