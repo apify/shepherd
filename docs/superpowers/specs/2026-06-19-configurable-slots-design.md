@@ -20,6 +20,13 @@ This step delivers that for **five slots**, keeping the existing `.devforge/` fi
 contract and the two human gates exactly as they are. The implementer and reviewer
 stay independent and coordinate only through files.
 
+> **Hard requirement — zero plugin dependency.** Installing superpowers (or any
+> plugin) is painful and must NOT be required to run devforge. Every engine these
+> slots use is **vendored and committed in this repository** (`.claude/skills/`,
+> `.claude/agents/`). A fresh clone — or attaching this repo on claude.ai/code — runs
+> the full default config with nothing installed. Installed plugins are only ever an
+> *optional* `config.local.json` override, never a default and never a prerequisite.
+
 Chosen fillers (defaults):
 
 | Slot | Default filler | Source | Default model |
@@ -244,7 +251,10 @@ devforge is skills (markdown), so "tests" are structural + a dogfood run:
    config yields defaults.
 2. **Vendoring integrity** — every `filler` in the registry resolves to an existing
    adapter dir; every adapter references an existing `_vendored/` engine; `VENDORED.md`
-   has an entry per vendored item.
+   has an entry per vendored item. **No-install guard:** no committed skill/adapter
+   references a `plugins/`, `~/.claude/plugins`, or plugin-cache path — every default
+   path resolves inside the repo (grep-based check), and all vendored files are
+   git-tracked (not gitignored).
 3. **Dogfood** — run `/devforge` on a small task in this repo end-to-end with the
    `default` config and again with `builtin-only`, confirming both gates fire, the
    two-reviewer flow runs, and `final-review.md` is produced.
