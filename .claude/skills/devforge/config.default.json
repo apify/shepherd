@@ -11,6 +11,9 @@
       { "use": "code-review",   "model": "sonnet" }
     ]
   },
+  "oracle": {
+    "commands": []
+  },
   "limits": { "inner_iterations": 3, "final_review_rounds": 2 },
   "plan_mode_gate": true
 }

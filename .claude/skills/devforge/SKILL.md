@@ -14,25 +14,27 @@ source before the design is approved, and cannot push/merge before merge is appr
 > **Working files live in `.devforge/` at the repo root — never under `.claude/`.**
 > `.claude/skills/` is the tool (config); `.devforge/` is this run's data.
 
-> **Config-driven slots.** Each phase is a *slot* filled by a vendored skill named in
-> `.devforge/config.json`. There are **no per-skill adapters** — one universal dispatch
-> contract (see *Slot dispatch*) drives every engine, parameterized by the **resolved
-> registry**: a base registry shipped beside this skill (`registry.base.json`) shallow-merged
-> with an optional `.devforge/registry.json` the current repo may add. The default slots:
+> **Config-driven slots.** Each phase is a *slot* filled by a vendored engine named in
+> `.devforge/config.json`. devforge does not maintain one wrapper skill for each engine;
+> instead, the single *Slot dispatch* contract reads the **resolved registry** and invokes
+> the selected engine directly. The registry is the base file shipped beside this skill
+> (`registry.base.json`) shallow-merged with an optional `.devforge/registry.json` the
+> current repo may add. The default slots:
 > validate ← `brainstorming`, architect ←
 > `writing-plans`, implementer ← `feature-dev`, reviewers ← `staff-review` (parallel,
 > every iteration — kept lean so the loop is fast), final_reviewers ← `thermonuclear` +
 > `code-review` (parallel, after convergence). Every engine is **vendored in-repo**
 > (`.claude/skills/_vendored/`) —
 > nothing needs installing. See `docs/devforge-config.md` for the catalog. The oracle
-> (tests/lint) is **not** a slot.
+> (configured test/lint commands) is **not** a slot.
 
 ## File contract (`.devforge/`)
 
 | File | Writer | Reader | Committed? |
 |------|--------|--------|-----------|
-| `config.json` | orchestrator (default) / human | orchestrator | yes |
+| `config.json` | orchestrator (from shipped `config.default.json`) / human | orchestrator | yes, when created or customized |
 | `config.local.json` | human (optional) | orchestrator | no (gitignored) |
+| `config.schema.json` (ships beside the skill) | tool | human, tooling | installed |
 | `registry.base.json` (ships beside the skill) | tool | orchestrator | installed |
 | `registry.json` (repo deltas, optional) | repo owner | orchestrator | yes |
 | `task.md` | validate slot | all | yes |
@@ -74,8 +76,10 @@ to its peers.
   `{"phase":"validate","iteration":0,"head_sha":"<git rev-parse HEAD>"}`; start
   `.devforge/progress.md` with a header and a timestamped "loop started" line.
 - **Load + validate config (every start, fresh or resume):**
-  - If `.devforge/config.json` is absent, write the committed default (the schema in
-    `config.schema.json`); tell the human it was created and is editable.
+  - If `.devforge/config.json` is absent, copy the shipped default from
+    `config.default.json` beside this skill. Validate configs against the shipped
+    `config.schema.json` beside this skill; do not copy the schema into `.devforge/`.
+    Tell the human the config was created and is editable.
   - If `.devforge/config.local.json` exists, **shallow-merge** it over `config.json`
     (per-slot overrides win) — use it, don't rewrite `config.json`.
   - **Resolve the registry (base + repo deltas):** load the **base registry** shipped beside
@@ -91,14 +95,16 @@ to its peers.
     slot's role (`registry.slot_roles[slot]`) is in that use's `roles`; no duplicate
     `use` within `reviewers` / `final_reviewers`. On any error, **STOP** and print the
     exact problem — do not run with an invalid config.
-  - Read `limits.inner_iterations` (default 3), `limits.final_review_rounds` (default
-    2), and `plan_mode_gate` (default true). Record the resolved config and the
-    **fully-resolved registry** (every `use` → its resolved engine path) in `progress.md`.
+  - Read `oracle.commands` (default `[]`), `limits.inner_iterations` (default 3),
+    `limits.final_review_rounds` (default 2), and `plan_mode_gate` (default true). Record
+    the resolved config and the **fully-resolved registry** (every `use` → its resolved
+    engine path) in `progress.md`.
 
 ### Slot dispatch (one universal contract)
 
-There are **no per-skill adapter files** — every slot runs through this one contract,
-parameterized by data in the resolved registry (base + any repo `.devforge/registry.json`).
+Every slot runs through this one contract. There is no separate wrapper skill such as
+`devforge-review-staff-review` or `devforge-impl-feature-dev`; the slot value chooses a
+registry entry, and that registry entry points at the engine instructions and scope.
 To run slot **S** with value
 `{ "use": U, "model": M }`:
 
@@ -118,7 +124,7 @@ To run slot **S** with value
 | role | reads | do NOT read | writes | format |
 |------|-------|-------------|--------|--------|
 | `validate` | the `<task>`/issue, codebase, `gh` | — | `task.md` + `validation.md` | claim ledger + one-line verdict |
-| `architect` | `task.md`, `validation.md`, codebase | — | `design.md` | approach · files to change · test strategy (oracle) · risks |
+| `architect` | `task.md`, `validation.md`, codebase | — | `design.md` | approach · files to change · test strategy (`oracle.commands` or inferred fallback) · risks |
 | `implementer` | `design.md`, all prior `iter-*/review-*.md` + `final-review-*.md` | — | source edits + `iter-N/claim.md` | what done / skipped + specific reason / evidence — **never edit or delete tests, and never edit the spec (`task.md` / `validation.md` / `design.md`)** |
 | `reviewer` | `task.md`, `design.md`, `iter-N/diff.patch`, `iter-N/test-results.txt` | `claim.md`, peer reviewers' output | `iter-N/review-<use>.md` | first line `VERDICT: PASS\|FAIL`, then severity-tagged findings (blocker/major/minor/nit). **`PASS` only if there are ZERO findings of ANY severity — a single nit means `FAIL`. Never PASS with findings listed.** |
 | `final_reviewer` | `task.md`, `design.md`, `iter-N/diff.patch`, working tree | `claim.md`, peer reviewers' output | `iter-N/final-review-<use>.md` | first line `VERDICT: PASS\|FAIL`, then severity-tagged findings. **`PASS` only if there are ZERO findings of ANY severity (nit included); otherwise `FAIL`.** |
@@ -203,9 +209,23 @@ For each iteration, make a fresh `.devforge/iter-N/` directory, then:
   `final-review-*.md` — blockers AND nits** (smallest proportionate fix; skip only with a
   specific recorded reason — "out of scope" alone is not a reason). It must **never edit
   or delete tests to pass**, and writes `iter-N/claim.md`.
-- **Oracle** (orchestrator, not a slot): run the project's tests/lint; redirect output
-  to `iter-N/test-results.txt`. Produce the ground-truth diff:
-  `git add -A && git diff --cached -U10 > iter-N/diff.patch` (then unstage if needed).
+- **Oracle** (orchestrator, not a slot): run each command in `oracle.commands`, in order,
+  redirecting all output to `iter-N/test-results.txt`. If `oracle.commands` is empty,
+  infer the smallest credible project check from the repo (for example an existing
+  `npm test`, `pytest`, or documented lint/test command), record the inferred command in
+  `progress.md`, and run it. Prefer deterministic, non-mutating commands: type checks,
+  lint checks, build checks, unit tests, and targeted integration tests when the change
+  touches that surface. Do not use long-running dev/watch/server commands or mutating
+  fixer/formatter commands as the oracle (`dev`, `start`, `watch`, `lint:fix`, `format`,
+  `clean`, inspectors, and eval workflows are usually not oracle commands). If no
+  credible command exists, write that explicitly to `test-results.txt` and treat the
+  oracle as not green.
+- **Diff isolation** (orchestrator): before staging anything, record the implementation
+  baseline from `state.head_sha` and inspect `git status --porcelain`. If there are
+  pre-existing unrelated changes, STOP and ask the human whether to include, stash, or
+  move them aside; never silently include them. Produce `iter-N/diff.patch` from only the
+  approved run's changes, using the current working tree diff against the recorded
+  baseline with enough context for review. Do not leave unrelated staged files behind.
 - **Reviewers (parallel)** — dispatch **one subagent per entry in `reviewers`**
   concurrently (per *Slot dispatch*), each **blind to `claim.md` and to the other
   reviewers**. Each writes `iter-N/review-<use>.md` (first line `VERDICT: PASS|FAIL` —
@@ -255,7 +275,17 @@ loop stays fast.
   `.devforge/merge.approved` exists.
 
 ### 7. Finish
-Commit, then push / open a PR as appropriate. Record the outcome in `progress.md`.
+1. Re-check `git status --porcelain` and confirm the only included changes are the
+   approved implementation plus committed `.devforge/` evidence files; if unrelated
+   changes are present, STOP for human direction.
+2. Commit with a concise message derived from `task.md`; include `.devforge/` durable
+   evidence files, but not ignored transients.
+3. If the repo has a writable remote, push the current branch and open a PR. Use the
+   first paragraph of `task.md` for the PR title/summary and include the oracle result,
+   reviewer verdicts, and approval marker timestamps in the PR body. If no writable
+   remote exists, leave the local commit and record that no push/PR was possible.
+4. Record the commit SHA, branch, PR URL if any, and final oracle/reviewer status in
+   `progress.md`.
 
 ## Rules
 - Only write inside `.devforge/` until `design.approved` exists.
@@ -272,7 +302,8 @@ Commit, then push / open a PR as appropriate. Record the outcome in `progress.md
   divergence to the human and let them choose — update the artifact via its owning slot,
   or change the code — do not pick for them by editing the doc. Mirroring `design.md`
   into the plan file for the plan-mode gate is not an edit (it is a verbatim copy).
-- Trust the oracle (tests/lint), not self-reports. Never weaken or delete tests.
+- Trust the oracle (`oracle.commands` or the recorded inferred fallback), not self-reports.
+  Never weaken or delete tests.
 - **A reviewer's `VERDICT: PASS` means zero findings of any severity (nits included).**
   Any finding — blocker, major, minor, or nit — is `FAIL`. Never accept a `PASS` that
   still lists findings.

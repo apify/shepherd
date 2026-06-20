@@ -70,7 +70,9 @@ if __name__ == "__main__":
     from pathlib import Path
 
     here = Path(__file__).resolve().parent.parent
-    cfg = json.loads((here / ".devforge/config.json").read_text())
+    repo_cfg = here / ".devforge/config.json"
+    default_cfg = here / ".claude/skills/devforge/config.default.json"
+    cfg = json.loads((repo_cfg if repo_cfg.is_file() else default_cfg).read_text())
     base = json.loads((here / ".claude/skills/devforge/registry.base.json").read_text())
     repo_path = here / ".devforge/registry.json"
     repo = json.loads(repo_path.read_text()) if repo_path.is_file() else None

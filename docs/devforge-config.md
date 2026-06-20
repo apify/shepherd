@@ -1,15 +1,16 @@
 # devforge configuration
 
 devforge's phases are **slots**. A *slot* is a role defined only by the files it reads
-and writes; what *fills* it — which vendored skill, on which model — is config you set in
+and writes; what *fills* it — which vendored engine, on which model — is config you set in
 `.devforge/config.json`. Swap a slot's `use` value and the loop runs a different engine
-without any change to the orchestrator. The **oracle** (your project's tests/lint) is the
-deterministic ground truth and is **not** a slot.
+without any change to the orchestrator. The **oracle** (`oracle.commands`, or an inferred
+fallback when the list is empty) is the deterministic ground truth and is **not** a slot.
 
 The generic engines are **vendored in this repo** (`.claude/skills/_vendored/`) and driven
-by a single universal dispatch contract in the orchestrator — there are no per-skill adapter
-files. Each `use` maps to the roles it can fill, its engine path, and a one-line scope note;
-the orchestrator fills one template from that. That mapping is a **base registry**
+by a single universal dispatch contract in the orchestrator. There is no separate wrapper
+skill per engine; each `use` maps to the roles it can fill, its engine path, and a
+one-line scope note, and the orchestrator fills one template from that. That mapping is a
+**base registry**
 (`registry.base.json`, shipped beside the skill) that a target repo can extend with its own
 `.devforge/registry.json` — see [Base + repo registries](#base--repo-registries). Nothing
 needs installing — see [`VENDORED.md`](../VENDORED.md).
@@ -45,12 +46,24 @@ Either way it's a `use` → roles + engine + scope row — no new skill file nee
 Each reviewer runs as an independent subagent, **blind to `claim.md` and to the other
 reviewers**, so the lenses stay genuinely independent.
 
-## Limits & gate
+## Oracle, Limits & Gate
 
 ```json
-{ "limits": { "inner_iterations": 3, "final_review_rounds": 2 }, "plan_mode_gate": true }
+{
+  "oracle": { "commands": [] },
+  "limits": { "inner_iterations": 3, "final_review_rounds": 2 },
+  "plan_mode_gate": true
+}
 ```
 
+- `oracle.commands` — ordered shell commands for the deterministic check, for example
+  `["npm test", "npm run lint"]` or `["python -m pytest"]`. An empty list means devforge
+  infers the smallest credible project check from repo conventions and records what it ran;
+  if it cannot infer one, the oracle is not green.
+- Use non-mutating, finite checks. Good oracle commands are type checks, lint checks,
+  format checks, builds, unit tests, and targeted integration tests. Avoid dev servers,
+  watch commands, cleanup commands, mutating fixers/formatters, inspectors, and eval
+  workflows unless the task explicitly requires them.
 - `inner_iterations` — implement→oracle→reviewers rounds before escalating.
 - `final_review_rounds` — how many times a final review may reopen the inner loop.
 - `plan_mode_gate` — when true and running interactively in the CLI, the design gate
@@ -76,6 +89,7 @@ reviewers**, so the lenses stay genuinely independent.
       { "use": "code-review",   "model": "sonnet" }
     ]
   },
+  "oracle": { "commands": [] },
   "limits": { "inner_iterations": 3, "final_review_rounds": 2 },
   "plan_mode_gate": true
 }
@@ -84,6 +98,67 @@ reviewers**, so the lenses stay genuinely independent.
 The per-iteration set is deliberately lean (correctness only) so the loop stays fast;
 the heavier maintainability/quality lenses (`thermonuclear`, `code-review`) run once at
 final review. Move a lens into `reviewers` if you want it on every iteration.
+
+### Choosing oracle commands from `package.json`
+
+Given a script set like this:
+
+```json
+{
+  "start": "tsx src/dev_server.ts",
+  "dev": "node scripts/dev_standby.js",
+  "build": "pnpm run build:core && pnpm run build:web",
+  "build:core": "tsc -b src",
+  "build:web": "pnpm --filter @apify/mcp-web-widget run build",
+  "lint": "oxlint .",
+  "lint:fix": "oxlint . --fix",
+  "format": "oxfmt",
+  "format:check": "oxfmt --check",
+  "check:agents": "node scripts/check-agents-links.mjs",
+  "type-check": "tsc -p tsconfig.json --noEmit",
+  "check": "pnpm run type-check && pnpm run lint",
+  "check:widgets": "tsx scripts/check_widgets.ts",
+  "test": "pnpm run test:unit",
+  "test:unit": "vitest run tests/unit",
+  "test:integration": "pnpm run build && vitest run tests/integration"
+}
+```
+
+A good default oracle would be:
+
+```json
+{
+  "oracle": {
+    "commands": ["pnpm run check", "pnpm run test:unit"]
+  }
+}
+```
+
+Add targeted commands when the task touches those surfaces:
+
+```json
+{
+  "oracle": {
+    "commands": [
+      "pnpm run check",
+      "pnpm run test:unit",
+      "pnpm run build",
+      "pnpm run check:widgets"
+    ]
+  }
+}
+```
+
+- Include `pnpm run build` when TypeScript project references, generated `dist`, bundled
+  web assets, or runtime entrypoints are affected.
+- Include `pnpm run check:widgets` when widget contracts or web widget files change.
+- Include `pnpm run check:agents` when agent/skill links or agent docs change.
+- Include a targeted integration test such as `pnpm run test:integration:stdio` only when
+  the implementation touches that integration path; full integration suites can be too
+  slow for every inner-loop iteration.
+- Do not use `start`, `dev`, `build:watch`, `lint:fix`, `format`, `clean`, inspector
+  scripts, or eval workflows as routine oracle commands. They are long-running, mutating,
+  cleanup-oriented, interactive, or too expensive for the normal loop.
 
 ### `fast-cheap` — one reviewer, no final pass, fewer rounds
 ```json
@@ -97,6 +172,7 @@ final review. Move a lens into `reviewers` if you want it on every iteration.
     ],
     "final_reviewers": []
   },
+  "oracle": { "commands": [] },
   "limits": { "inner_iterations": 2, "final_review_rounds": 0 },
   "plan_mode_gate": true
 }
@@ -118,6 +194,7 @@ final review. Move a lens into `reviewers` if you want it on every iteration.
       { "use": "code-review", "model": "opus" }
     ]
   },
+  "oracle": { "commands": [] },
   "limits": { "inner_iterations": 5, "final_review_rounds": 3 },
   "plan_mode_gate": true
 }
@@ -182,6 +259,7 @@ depending on the feature:
                          { "use": "code-review",   "model": "sonnet" },
                          { "use": "mcpc-tester",   "model": "sonnet" } ]
   },
+  "oracle": { "commands": [] },
   "limits": { "inner_iterations": 3, "final_review_rounds": 2 },
   "plan_mode_gate": true
 }
@@ -191,8 +269,10 @@ No devforge change is needed to add a domain engine — only these two files in 
 
 ## Overrides & validation
 
-- `.devforge/config.json` is the committed default (devforge writes it on first run if
-  missing).
+- `.devforge/config.json` is an optional project override. If it is missing, devforge
+  writes the default from `config.default.json` shipped beside the skill. The schema stays
+  with the skill at `devforge/config.schema.json`; repo configs are validated against that
+  shipped schema instead of carrying a duplicate schema file.
 - `.devforge/config.local.json` (gitignored) **shallow-merges** over it for
   per-environment tweaks — e.g. pointing a slot at a locally-installed skill instead of
   the vendored copy. This is the **only** place an installed plugin may be referenced.

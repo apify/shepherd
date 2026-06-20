@@ -17,6 +17,17 @@
         "final_reviewers": { "type": "array", "items": { "$ref": "#/$defs/slotValue" }, "minItems": 0 }
       }
     },
+    "oracle": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "commands": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        }
+      }
+    },
     "limits": {
       "type": "object",
       "additionalProperties": false,

@@ -45,6 +45,6 @@ def test_comment_and_other_keys_are_ignored():
 def test_merged_registry_validates_a_config_that_picks_a_repo_use():
     repo = {"uses": {"dig": {"roles": ["architect"], "engine": ".claude/skills/dig/SKILL.md", "scope": "x"}}}
     merged = merge_registry(BASE, repo)
-    cfg = load_json(REPO_ROOT / ".devforge/config.json")
+    cfg = load_json(REPO_ROOT / ".claude/skills/devforge/config.default.json")
     cfg["slots"]["architect"] = {"use": "dig", "model": "opus"}
     assert validate(cfg, merged) == []

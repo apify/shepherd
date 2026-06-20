@@ -4,6 +4,10 @@
 .devforge/iter-*/diff.patch
 .devforge/iter-*/test-results.txt
 
+# Local/generated devforge config. The shipped defaults live beside the skill.
+.devforge/config.json
+.devforge/config.schema.json
+
 # Per-environment slot overrides (e.g. pointing a slot at a locally-installed skill).
 .devforge/config.local.json
 

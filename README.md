@@ -9,7 +9,7 @@ independent so the reviewer judges the *actual change* — never the implementer
    validate → explore → architect → [DESIGN GATE: human] →
      ┌─ iteration N ──────────────────────────────────────────────┐
      │ implementer edits source, writes claim.md                   │
-     │ orchestrator runs the oracle (tests/lint) + computes diff   │
+     │ orchestrator runs the oracle commands + computes diff       │
      │ reviewers (parallel, e.g. correctness + maintainability)    │
      │   each read the diff → review-<use>.md (PASS/FAIL)          │
      │ green + all findings resolved → converged │ else → next iter│
@@ -28,8 +28,9 @@ pure skills: no plugin, no install, no settings prompt.
 - **Verify with a deterministic oracle + an independent critic**, never the model's own
   say-so. LLMs confidently approve their own wrong output.
 - **Reward hacking is real** (delete the failing test to go green). So: the orchestrator
-  runs the oracle (the implementer can't fake results), the implementer must **never edit
-  or delete tests to pass**, and the reviewer is **blind to the implementer's claims**.
+  runs the configured oracle commands (the implementer can't fake results), the
+  implementer must **never edit or delete tests to pass**, and the reviewer is **blind to
+  the implementer's claims**.
 - **Issues drift.** A GitHub issue filed weeks ago cites files that moved, symbols that
   were renamed, or a bug that's already fixed. The **validate** phase verifies an issue's
   claims against the *current* code before any design is drawn.
@@ -87,10 +88,10 @@ blind to the implementer's narrative. Independence = separate context + a differ
 ### Roles are file contracts; slots are config
 
 A *role* (implementer, reviewer, …) is defined only by the files it reads and writes.
-What *fills* it — which vendored skill, on a chosen model — is a config value in
+What *fills* it — which vendored engine, on a chosen model — is a config value in
 `.devforge/config.json` (the slot's `use`), so you can swap a role without touching the
-loop. The implementer and reviewers are swappable slots; the **oracle (tests/lint) is
-not** — it's the deterministic ground truth. See **[Configuration](#configuration)**.
+loop. The implementer and reviewers are swappable slots; the **oracle (`oracle.commands`)
+is not** — it's the deterministic ground truth. See **[Configuration](#configuration)**.
 
 ### Validate catches stale issues
 
@@ -122,7 +123,8 @@ already-fixed — so the design is built on current reality.
 ## Configuration
 
 Each phase is a **slot** filled by an engine named in `.devforge/config.json` (the slot's
-`use`). One universal dispatch contract drives every engine — no per-skill adapters. A
+`use`). One universal dispatch contract drives every engine; devforge does not need a
+separate wrapper skill for each engine. A
 **base registry** (`registry.base.json`, shipped beside the skill) maps each `use` to its
 role, engine, and a one-line scope; a target repo may add its own `.devforge/registry.json`
 engines that **merge over the base** (this is how a repo plugs in domain engines like `dig`
@@ -138,16 +140,24 @@ without touching devforge). Defaults:
     "final_reviewers": [ { "use": "thermonuclear", "model": "sonnet" },
                          { "use": "code-review", "model": "sonnet" } ]
   },
+  "oracle": { "commands": [] },
   "limits": { "inner_iterations": 3, "final_review_rounds": 2 },
   "plan_mode_gate": true
 }
 ```
 
+`oracle.commands` is an ordered list such as `["python -m pytest"]` or
+`["npm test", "npm run lint"]`; an empty list asks devforge to infer the smallest credible
+project check and record what it ran. Prefer finite, non-mutating checks such as
+`pnpm run check`, `pnpm run test:unit`, `pnpm run build`, or targeted integration tests.
+Avoid dev servers, watch commands, mutating fixers, cleanup commands, inspectors, and eval
+workflows as routine oracle commands.
+
 Every iteration runs the implementer, then **all `reviewers` in parallel** (each blind to
 `claim.md` and to each other); once they converge, the **`final_reviewers`** run a fresh
 second-angle pass whose findings feed back into the loop. Every engine is **vendored
 in-repo** under `.claude/skills/_vendored/` (nothing to install), driven by a single
-dispatch contract — swapping a slot is a one-word config edit, not a new wrapper. Full
+dispatch contract — swapping a slot is a config edit, not a new wrapper skill. Full
 catalog, example configs (`fast-cheap` / `max-rigor`), and override rules:
 **[`docs/devforge-config.md`](docs/devforge-config.md)**. Provenance:
 **[`VENDORED.md`](VENDORED.md)**.
@@ -169,13 +179,15 @@ repo, wired via a repo-level `.devforge/registry.json` merged over the base (see
   .claude-plugin/plugin.json  plugin manifest (name: devforge)
 .claude/skills/          the tool (loads on web; never holds run data)
   devforge/SKILL.md                the orchestrator (incl. the universal slot-dispatch contract)
+  devforge/config.default.json      default config copied to .devforge/config.json on first run
+  devforge/config.schema.json       schema used to validate generated/project config
   devforge/registry.base.json      the base registry — generic engines (merged with a repo's deltas)
   devforge-approve-design/             human-only design-gate approval
   devforge-approve-merge/              human-only pre-merge-gate approval
   _vendored/                  faithful upstream engine copies (see VENDORED.md)
 .claude/agents/          devforge-code-explorer / -architect (grounding agents)
 .claude-plugin/marketplace.json  marketplace catalog (points at ./.claude)
-.devforge/               a run's working files + config.json / config.schema.json (+ optional repo registry.json deltas)
+.devforge/               a run's working files (+ optional repo config.json / registry.json)
 docs/devforge-config.md  the configuration catalog
 scripts/validate_config.py  config validator (CI/tests; rules mirror the orchestrator)
 tests/                   structural test suite (schema, registry, vendoring, no-install)

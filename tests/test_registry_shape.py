@@ -1,7 +1,7 @@
 from conftest import REPO_ROOT, load_json
 
 REGISTRY = load_json(REPO_ROOT / ".claude/skills/devforge/registry.base.json")
-CONFIG = load_json(REPO_ROOT / ".devforge/config.json")
+CONFIG = load_json(REPO_ROOT / ".claude/skills/devforge/config.default.json")
 
 SLOTS = {"validate", "architect", "implementer", "reviewers", "final_reviewers"}
 ROLES = {"validate", "architect", "implementer", "reviewer", "final_reviewer"}

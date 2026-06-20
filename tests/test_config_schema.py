@@ -5,11 +5,15 @@ import jsonschema
 import pytest
 from conftest import REPO_ROOT, load_json
 
-SCHEMA = load_json(REPO_ROOT / ".devforge/config.schema.json")
-CONFIG = REPO_ROOT / ".devforge/config.json"
+SCHEMA = load_json(REPO_ROOT / ".claude/skills/devforge/config.schema.json")
+CONFIG = REPO_ROOT / ".claude/skills/devforge/config.default.json"
 
 
 def test_default_config_matches_schema():
+    jsonschema.validate(load_json(CONFIG), SCHEMA)
+
+
+def test_shipped_default_config_matches_schema():
     jsonschema.validate(load_json(CONFIG), SCHEMA)
 
 
@@ -31,6 +35,19 @@ def test_schema_allows_empty_final_reviewers_list():
     ok = load_json(CONFIG)
     ok["slots"]["final_reviewers"] = []
     jsonschema.validate(ok, SCHEMA)
+
+
+def test_schema_accepts_oracle_commands():
+    ok = load_json(CONFIG)
+    ok["oracle"] = {"commands": ["python -m pytest", "npm run lint"]}
+    jsonschema.validate(ok, SCHEMA)
+
+
+def test_schema_rejects_empty_oracle_command():
+    bad = load_json(CONFIG)
+    bad["oracle"] = {"commands": [""]}
+    with pytest.raises(jsonschema.ValidationError):
+        jsonschema.validate(bad, SCHEMA)
 
 
 def test_catalog_examples_are_valid():

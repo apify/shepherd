@@ -6,8 +6,8 @@ only ever an optional `.devforge/config.local.json` override.
 
 Each engine below is copied **verbatim** into `.claude/skills/_vendored/`. devforge's
 **single universal dispatch contract** (in the orchestrator) drives every engine scoped
-to devforge's file contract — the per-engine specifics live as two fields in
-`.devforge/registry.json` (`engine` + `scope`), not as bespoke wrapper skills. The
+to devforge's file contract. The resolved registry stores each engine path and scope
+(`engine` + `scope`), so devforge does not need bespoke wrapper skills. The
 engines themselves are unmodified, so a re-sync is a clean diff.
 
 > **Why `ENGINE.md`, not `SKILL.md`.** A vendored skill named `SKILL.md` under

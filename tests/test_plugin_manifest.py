@@ -38,3 +38,14 @@ def test_plugin_source_dir_holds_the_skills():
 def test_base_registry_ships_inside_the_plugin_root():
     # registry.base.json must sit beside the devforge skill so its ../_vendored paths resolve.
     assert (REPO_ROOT / ".claude/skills/devforge/registry.base.json").is_file()
+
+
+def test_default_config_and_schema_ship_inside_the_plugin_root():
+    skill = REPO_ROOT / ".claude/skills/devforge"
+    assert (skill / "config.default.json").is_file()
+    assert (skill / "config.schema.json").is_file()
+
+
+def test_repo_does_not_duplicate_shipped_config_files():
+    assert not (REPO_ROOT / ".devforge/config.json").exists()
+    assert not (REPO_ROOT / ".devforge/config.schema.json").exists()
