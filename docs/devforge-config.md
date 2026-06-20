@@ -119,6 +119,72 @@ final review. Move a lens into `reviewers` if you want it on every iteration.
 }
 ```
 
+## Base + repo registries
+
+The registry is **layered**, just like the config:
+
+- The **base registry** ships beside the skill at `registry.base.json` — the generic engines
+  (`brainstorming`, `writing-plans`, `feature-dev`, `staff-review`, `thermonuclear`,
+  `code-review`). It travels with the install, so its engine paths resolve relative to the
+  devforge install.
+- A target repo may add `.devforge/registry.json` listing **only its own extra engines**.
+  devforge shallow-merges its `uses` over the base (the repo wins on a name collision;
+  `slot_roles` always comes from the base). A repo `use`'s engine path resolves relative to the
+  **repo root**. A repo with no `.devforge/registry.json` runs on the base alone.
+
+So "what engines exist here?" = base + this repo's deltas. To keep a small delta file from
+reading as the whole story, two things help:
+
+- a `$comment` key in the repo's `registry.json` (ignored by the merge) saying it is partial;
+- devforge logs the **fully-resolved registry** (every engine → resolved path) to
+  `.devforge/progress.md` at startup, so each run leaves a complete, concrete view.
+
+### Recipe: add a domain engine in a target repo
+
+To plug a repo's own skill/agent into a slot — e.g. a planning skill at `.claude/skills/dig`
+and an end-to-end verifier at `.claude/agents/mcpc-tester.md`:
+
+```jsonc
+// <target-repo>/.devforge/registry.json   — committed in that repo, deltas only
+{
+  "$comment": "Domain engines only. Generic engines come from devforge's base registry.",
+  "uses": {
+    "dig": {
+      "roles": ["architect"],
+      "engine": ".claude/skills/dig/SKILL.md",
+      "scope": "follow as instruction text; plan using its resources + conventions; STRIP its own gate and issue-creation; write design.md only"
+    },
+    "mcpc-tester": {
+      "roles": ["reviewer", "final_reviewer"],
+      "engine": ".claude/agents/mcpc-tester.md",
+      "scope": "follow as instruction text; build + probe the live server; emit VERDICT then findings"
+    }
+  }
+}
+```
+
+Then wire them in `<target-repo>/.devforge/config.json` — a `use` with both reviewer roles can
+sit in `reviewers` (probe every iteration), `final_reviewers` (one final probe), or both,
+depending on the feature:
+
+```jsonc
+{
+  "slots": {
+    "validate":    { "use": "brainstorming", "model": "opus" },
+    "architect":   { "use": "dig",           "model": "opus" },
+    "implementer": { "use": "feature-dev",   "model": "opus" },
+    "reviewers":       [ { "use": "staff-review",  "model": "sonnet" } ],
+    "final_reviewers": [ { "use": "thermonuclear", "model": "sonnet" },
+                         { "use": "code-review",   "model": "sonnet" },
+                         { "use": "mcpc-tester",   "model": "sonnet" } ]
+  },
+  "limits": { "inner_iterations": 3, "final_review_rounds": 2 },
+  "plan_mode_gate": true
+}
+```
+
+No devforge change is needed to add a domain engine — only these two files in the target repo.
+
 ## Overrides & validation
 
 - `.devforge/config.json` is the committed default (devforge writes it on first run if

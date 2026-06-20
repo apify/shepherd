@@ -48,6 +48,7 @@ everything **shipped in-repo** so the loop runs with nothing installed.
 ## Out of scope
 
 - Configurable `explore` (stays orchestrator-owned).
-- Vendoring domain skills (e.g. `dig`) — they stay in their target repo as optional
-  `config.local.json` swaps.
+- Vendoring domain skills (e.g. `dig`) — they stay in their target repo, now wired via a
+  repo-level `.devforge/registry.json` merged over the base. See
+  [`2026-06-20-repo-registry-merge-design.md`](2026-06-20-repo-registry-merge-design.md).
 - Changing the oracle, the file contract, or the two-gate structure.
