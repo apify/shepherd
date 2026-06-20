@@ -1,0 +1,41 @@
+{
+  "slot_roles": {
+    "validate": "validate",
+    "architect": "architect",
+    "implementer": "implementer",
+    "reviewers": "reviewer",
+    "final_reviewers": "final_reviewer"
+  },
+  "uses": {
+    "brainstorming": {
+      "roles": ["validate"],
+      "engine": ".claude/skills/_vendored/brainstorming/ENGINE.md",
+      "scope": "clarifying-question discipline; STRIP its spec-doc write/commit and its own approval gate (the orchestrator owns the gate); keep devforge's GitHub-issue staleness/claim-ledger check"
+    },
+    "writing-plans": {
+      "roles": ["architect"],
+      "engine": ".claude/skills/_vendored/writing-plans/ENGINE.md",
+      "scope": "planning discipline (concrete files, test strategy, no placeholders); STRIP the docs/plans file-save and the subagent/inline execution handoff"
+    },
+    "feature-dev": {
+      "roles": ["implementer"],
+      "engine": ".claude/skills/_vendored/feature-dev/feature-dev.md",
+      "scope": "implement-only against the approved design.md; SKIP feature-dev's Discovery / clarifying-questions / architecture phases; may dispatch the devforge-code-explorer / devforge-code-architect agents for grounding only"
+    },
+    "staff-review": {
+      "roles": ["reviewer", "final_reviewer"],
+      "engine": ".claude/skills/_vendored/staff-review/ENGINE.md",
+      "scope": "apply to diff.patch; focus on correctness, edge cases, and test coverage"
+    },
+    "thermonuclear": {
+      "roles": ["reviewer", "final_reviewer"],
+      "engine": ".claude/skills/_vendored/thermonuclear/ENGINE.md",
+      "scope": "follow as instruction text (NOT Skill-invoked); apply maintainability standards to diff.patch — 1k-line file ceiling, no spaghetti branching, code-judo simplification; map presumptive-blockers to blocker/major"
+    },
+    "code-review": {
+      "roles": ["reviewer", "final_reviewer"],
+      "engine": ".claude/skills/_vendored/code-review/code-review.md",
+      "scope": "keep the multi-agent + confidence-score method but RETARGET it: read iter-N/diff.patch + working tree instead of `gh pr diff`; DROP the PR-eligibility checks and the gh-pr-comment step; filter to score >= 80"
+    }
+  }
+}

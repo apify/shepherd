@@ -1,0 +1,17 @@
+# devforge: regenerable inner-loop transients (re-created from git diff / re-running
+# the oracle). Durable records (task.md, design.md, review.md, progress.md, state.json,
+# claim.md, *.approved) are committed on the feature branch as the evidence trail.
+.devforge/iter-*/diff.patch
+.devforge/iter-*/test-results.txt
+
+# Per-environment slot overrides (e.g. pointing a slot at a locally-installed skill).
+.devforge/config.local.json
+
+# Editor / OS noise
+.idea/
+.DS_Store
+
+# Python build artifacts (from dogfooding the loop in this repo)
+__pycache__/
+*.pyc
+.pytest_cache/

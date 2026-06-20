@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "devforge config",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["slots"],
+  "properties": {
+    "slots": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["validate", "architect", "implementer", "reviewers", "final_reviewers"],
+      "properties": {
+        "validate":    { "$ref": "#/$defs/slotValue" },
+        "architect":   { "$ref": "#/$defs/slotValue" },
+        "implementer": { "$ref": "#/$defs/slotValue" },
+        "reviewers":       { "type": "array", "items": { "$ref": "#/$defs/slotValue" }, "minItems": 1 },
+        "final_reviewers": { "type": "array", "items": { "$ref": "#/$defs/slotValue" }, "minItems": 0 }
+      }
+    },
+    "limits": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "inner_iterations":    { "type": "integer", "minimum": 1 },
+        "final_review_rounds": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "plan_mode_gate": { "type": "boolean" }
+  },
+  "$defs": {
+    "slotValue": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["use"],
+      "properties": {
+        "use":   { "type": "string" },
+        "model": { "type": "string" }
+      }
+    }
+  }
+}
