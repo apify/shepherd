@@ -57,7 +57,7 @@ reviewers**, so the lenses stay genuinely independent.
   renders `design.md` in Claude Code's plan-mode for native approve/reject (the
   orchestrator calls `EnterPlanMode`, mirrors the design into the plan file, then
   `ExitPlanMode`); otherwise (and always on web/headless) it falls back to
-  `/devforge-approve-design`. The marker file is the source of truth either way.
+  `/devforge:approve-design`. The marker file is the source of truth either way.
 
 ## Example configs
 

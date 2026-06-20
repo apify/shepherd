@@ -1,0 +1,13 @@
+{
+  "name": "devforge",
+  "owner": {
+    "name": "Jiri Spilka"
+  },
+  "plugins": [
+    {
+      "name": "devforge",
+      "source": "./.claude",
+      "description": "Gated agentic coding loop — /devforge:devforge plus the human-only /devforge:approve-design and /devforge:approve-merge."
+    }
+  ]
+}
