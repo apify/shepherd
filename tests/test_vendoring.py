@@ -2,7 +2,7 @@ import subprocess
 
 from conftest import REPO_ROOT, load_json
 
-REGISTRY = load_json(REPO_ROOT / ".devforge/registry.json")
+REGISTRY = load_json(REPO_ROOT / ".claude/skills/devforge/registry.base.json")
 
 
 def _engines():

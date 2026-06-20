@@ -69,9 +69,12 @@ if __name__ == "__main__":
     import sys
     from pathlib import Path
 
-    root = Path(__file__).resolve().parent.parent
-    cfg = json.loads((root / ".devforge/config.json").read_text())
-    reg = json.loads((root / ".devforge/registry.json").read_text())
+    here = Path(__file__).resolve().parent.parent
+    cfg = json.loads((here / ".devforge/config.json").read_text())
+    base = json.loads((here / ".claude/skills/devforge/registry.base.json").read_text())
+    repo_path = here / ".devforge/registry.json"
+    repo = json.loads(repo_path.read_text()) if repo_path.is_file() else None
+    reg = merge_registry(base, repo)
     problems = validate(cfg, reg)
     if problems:
         print("\n".join(problems))

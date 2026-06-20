@@ -5,9 +5,7 @@ from conftest import REPO_ROOT, load_json
 sys.path.insert(0, str(REPO_ROOT / "scripts"))
 from validate_config import merge_registry, validate  # noqa: E402
 
-# Task 1 loads the base from its current location; Task 2 relocates this path
-# (and the four other loaders) to .claude/skills/devforge/registry.base.json.
-BASE = load_json(REPO_ROOT / ".devforge/registry.json")
+BASE = load_json(REPO_ROOT / ".claude/skills/devforge/registry.base.json")
 
 
 def test_repo_use_is_added_to_base():

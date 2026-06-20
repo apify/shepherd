@@ -39,7 +39,7 @@ def test_catalog_examples_are_valid():
     sys.path.insert(0, str(REPO_ROOT / "scripts"))
     from validate_config import validate
 
-    registry = load_json(REPO_ROOT / ".devforge/registry.json")
+    registry = load_json(REPO_ROOT / ".claude/skills/devforge/registry.base.json")
     catalog = REPO_ROOT / "docs/devforge-config.md"
     if not catalog.is_file():
         pytest.skip("catalog not written yet")

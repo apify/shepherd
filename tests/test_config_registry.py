@@ -5,7 +5,7 @@ from conftest import REPO_ROOT, load_json
 sys.path.insert(0, str(REPO_ROOT / "scripts"))
 from validate_config import validate  # noqa: E402
 
-REGISTRY = load_json(REPO_ROOT / ".devforge/registry.json")
+REGISTRY = load_json(REPO_ROOT / ".claude/skills/devforge/registry.base.json")
 CONFIG = REPO_ROOT / ".devforge/config.json"
 
 
