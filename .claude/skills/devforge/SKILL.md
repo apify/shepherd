@@ -1,6 +1,6 @@
 ---
-name: devforge
-description: Run a task through the gated coding loop — validate, explore, architect, STOP for human design approval, then implement ↔ review ↔ test, STOP for human pre-merge approval, then merge. Use this to drive any non-trivial change through controlled, human-gated steps where the implementer and reviewer stay independent and coordinate only through files. Invoke as /devforge <task>.
+name: run
+description: Run a task through the gated coding loop — validate, explore, architect, STOP for human design approval, then implement ↔ review ↔ test, STOP for human pre-merge approval, then merge. Use this to drive any non-trivial change through controlled, human-gated steps where the implementer and reviewer stay independent and coordinate only through files. Invoke as /devforge:devforge <task>.
 argument-hint: "<task description>"
 ---
 
@@ -38,7 +38,7 @@ source before the design is approved, and cannot push/merge before merge is appr
 | `task.md` | validate slot | all | yes |
 | `validation.md` | validate slot | human, all | yes |
 | `design.md` | architect slot | impl, reviewers | yes |
-| `design.approved` | **human** `/devforge-approve-design` | gate check | yes |
+| `design.approved` | **human** `/devforge:approve-design` | gate check | yes |
 | `state.json` | orchestrator | resume | yes |
 | `progress.md` | orchestrator | human | yes |
 | `iter-N/claim.md` | implementer | **human only** | yes |
@@ -46,7 +46,7 @@ source before the design is approved, and cannot push/merge before merge is appr
 | `iter-N/test-results.txt` | orchestrator (oracle) | reviewers | no (gitignored) |
 | `iter-N/review-<use>.md` | each per-iteration reviewer | impl (next iter), orchestrator | yes |
 | `iter-N/final-review-<use>.md` | each final reviewer | impl (next iter), orchestrator | yes |
-| `merge.approved` | **human** `/devforge-approve-merge` | gate check | yes |
+| `merge.approved` | **human** `/devforge:approve-merge` | gate check | yes |
 
 `<use>` is the slot value's `use` name (e.g. `review-staff-review.md`,
 `review-thermonuclear.md`, `final-review-code-review.md`).
@@ -126,8 +126,8 @@ To run slot **S** with value
 `<use>` in a filename is the value's `use` name (e.g. `review-staff-review.md`).
 
 > **Approval auto-continues.** At each gate the human runs the human-only approval skill,
-> which records the marker and then **hands straight back to `/devforge`** — the loop
-> continues without the human re-invoking anything. Re-running `/devforge` also resumes
+> which records the marker and then **hands straight back to `/devforge:devforge`** — the loop
+> continues without the human re-invoking anything. Re-running `/devforge:devforge` also resumes
 > from `state.json` (the fallback if a run is ever interrupted); it never restarts a run
 > already in progress.
 
@@ -190,9 +190,9 @@ Set `state.phase="design-gate"`.
      `design.md` (never hand-edit it yourself — see Rules), then re-present from step 1.
 - **Otherwise** (`plan_mode_gate` false, or running on web/headless, or resuming, or if
   `EnterPlanMode`/`ExitPlanMode` is unavailable): tell the human to review
-  `.devforge/design.md`, then run **`/devforge-approve-design`** — it records the marker
+  `.devforge/design.md`, then run **`/devforge:approve-design`** — it records the marker
   and continues automatically. Then stop and wait.
-- (Fallback) if interrupted, re-running `/devforge` resumes via step 0 once
+- (Fallback) if interrupted, re-running `/devforge:devforge` resumes via step 0 once
   `.devforge/design.approved` exists.
 
 ### 5. Inner loop  (implement → oracle → reviewers), iteration N = 1, 2, …
@@ -249,9 +249,9 @@ loop stays fast.
   (fixed or justified-skip, nits included; no "noted but unhandled"). Present the diff
   clearly: a `git diff --stat` summary plus the actual hunks, so the human reviews the
   real change. Then tell them the exact next step: review `.devforge/`, then run
-  **`/devforge-approve-merge`** — it records approval and continues to commit + PR
+  **`/devforge:approve-merge`** — it records approval and continues to commit + PR
   automatically. Then stop and wait.
-- (Fallback) if interrupted, re-running `/devforge` resumes via step 0 once
+- (Fallback) if interrupted, re-running `/devforge:devforge` resumes via step 0 once
   `.devforge/merge.approved` exists.
 
 ### 7. Finish

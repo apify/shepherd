@@ -1,0 +1,4 @@
+{
+  "name": "devforge",
+  "description": "A controlled, human-gated agentic coding loop: validate → explore → architect → [design gate] → implement ↔ review ↔ test → [pre-merge gate] → merge, keeping the implementer and reviewer independent. Provides /devforge:devforge and the human-only /devforge:approve-design and /devforge:approve-merge."
+}

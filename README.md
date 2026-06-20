@@ -5,7 +5,7 @@ walks the task through human-gated phases, keeping the implementer and reviewer
 independent so the reviewer judges the *actual change* — never the implementer's pitch.
 
 ```
-/devforge <task>
+/devforge:devforge <task>
    validate → explore → architect → [DESIGN GATE: human] →
      ┌─ iteration N ──────────────────────────────────────────────┐
      │ implementer edits source, writes claim.md                   │
@@ -41,15 +41,15 @@ pure skills: no plugin, no install, no settings prompt.
 
 ### Two self-enforced gates
 
-`/devforge` checks for marker files and **refuses to proceed without them**:
+`/devforge:devforge` checks for marker files and **refuses to proceed without them**:
 
 - It won't edit source until `.devforge/design.approved` exists.
 - It won't push / merge / open a PR until `.devforge/merge.approved` exists.
 
-A human writes those markers with the human-only skills **`/devforge-approve-design`**
-and **`/devforge-approve-merge`** (they carry `disable-model-invocation: true`, so the
+A human writes those markers with the human-only skills **`/devforge:approve-design`**
+and **`/devforge:approve-merge`** (they carry `disable-model-invocation: true`, so the
 agent can't self-approve). After approving, the loop **continues automatically** — the approval skill
-hands straight back to `/devforge` (which also **resumes from `.devforge/state.json`** if
+hands straight back to `/devforge:devforge` (which also **resumes from `.devforge/state.json`** if
 a run is ever interrupted, and never restarts one in progress). There are
 no hooks — the gates are enforced by the orchestrator following the skill, and the
 **human review is the real guarantee**. Simpler, and no "trust the hooks?" prompt for
@@ -66,14 +66,14 @@ hand off **only through these files**:
 | `task.md` | validate | all | yes |
 | `validation.md` | validate | human, all | yes |
 | `design.md` | architect | impl, reviewer | yes |
-| `design.approved` | **human** `/devforge-approve-design` | gate check | yes |
+| `design.approved` | **human** `/devforge:approve-design` | gate check | yes |
 | `state.json`, `progress.md` | orchestrator | resume / human | yes |
 | `iter-N/claim.md` | implementer | **human only** | yes |
 | `iter-N/diff.patch` | orchestrator (`git diff`) | reviewers | no (gitignored) |
 | `iter-N/test-results.txt` | orchestrator (oracle) | reviewers | no (gitignored) |
 | `iter-N/review-<use>.md` | each per-iteration reviewer | impl (next iter) | yes |
 | `iter-N/final-review-<use>.md` | each final reviewer | impl (next iter) | yes |
-| `merge.approved` | **human** `/devforge-approve-merge` | gate check | yes |
+| `merge.approved` | **human** `/devforge:approve-merge` | gate check | yes |
 
 Durable records are committed on the feature branch (the PR carries the paper trail and
 web sessions can resume); regenerable transients (`diff.patch`, `test-results.txt`) are
@@ -103,11 +103,21 @@ already-fixed — so the design is built on current reality.
 
 ## Use
 
+- **As a plugin (recommended):** add this repo as a marketplace and install — the plugin
+  bundles the skills, the vendored engines, and the base registry:
+  ```
+  /plugin marketplace add jirispilka/devforge
+  /plugin install devforge@devforge
+  ```
+  For local development, skip the marketplace and load the dir directly:
+  `claude --plugin-dir /path/to/devforge/.claude`.
 - **On web:** attach this repo to a claude.ai/code session — the skills load automatically.
 - **In another repo:** copy `.claude/skills/` into it (it travels; domain context stays put).
-- **Commands:** `/devforge <task>` to run; `/devforge-approve-design` and
-  `/devforge-approve-merge` are the human-only approvals — each records its gate and
-  **auto-continues** the loop. (`/devforge` with no args resumes an interrupted run.)
+- **Commands:** `/devforge:devforge <task>` to run; `/devforge:approve-design` and
+  `/devforge:approve-merge` are the human-only approvals — each records its gate and
+  **auto-continues** the loop. (`/devforge:devforge` with no args resumes an interrupted run.)
+  Plugin skills are namespaced `devforge:`; attached standalone/on web they're bare
+  (`/devforge`, `/approve-design`, `/approve-merge`).
 
 ## Configuration
 
@@ -155,13 +165,16 @@ repo, wired via a repo-level `.devforge/registry.json` merged over the base (see
 ## Layout
 
 ```
+.claude/                 the plugin root (source: "./.claude" in marketplace.json)
+  .claude-plugin/plugin.json  plugin manifest (name: devforge)
 .claude/skills/          the tool (loads on web; never holds run data)
-  devforge/SKILL.md           the orchestrator (incl. the universal slot-dispatch contract)
-  devforge/registry.base.json the base registry — generic engines (merged with a repo's deltas)
-  devforge-approve-design/    human-only design-gate approval
-  devforge-approve-merge/     human-only pre-merge-gate approval
+  devforge/SKILL.md                the orchestrator (incl. the universal slot-dispatch contract)
+  devforge/registry.base.json      the base registry — generic engines (merged with a repo's deltas)
+  approve-design/             human-only design-gate approval
+  approve-merge/              human-only pre-merge-gate approval
   _vendored/                  faithful upstream engine copies (see VENDORED.md)
 .claude/agents/          devforge-code-explorer / -architect (grounding agents)
+.claude-plugin/marketplace.json  marketplace catalog (points at ./.claude)
 .devforge/               a run's working files + config.json / config.schema.json (+ optional repo registry.json deltas)
 docs/devforge-config.md  the configuration catalog
 scripts/validate_config.py  config validator (CI/tests; rules mirror the orchestrator)
