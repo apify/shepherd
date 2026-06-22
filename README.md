@@ -42,6 +42,19 @@ claude --plugin-dir /path/to/devforge/.claude
 On claude.ai/code, attach this repo. In another repo, copy `.claude/skills/` or install as
 a plugin. Use the commands without a `devforge:` prefix.
 
+### Read prompts during a run
+
+A run reads engine files under `.claude/skills/_vendored/` on demand. These read-only
+prompts are expected. If you copied `.claude/skills/` into your repo (or attached the repo),
+allowlist them in `.claude/settings.json`:
+
+```json
+{ "permissions": { "allow": ["Read(.claude/skills/_vendored/**)", "Read(.claude/skills/devforge/**)"] } }
+```
+
+When installed as a plugin the files live under the plugin path, so this glob won't match —
+just approve the prompts once.
+
 ## Files
 
 - Tooling lives in `.claude/skills/`.
@@ -55,6 +68,16 @@ a plugin. Use the commands without a `devforge:` prefix.
 Stages are configured in `.devforge/config.json`; defaults ship beside the skill in
 `.claude/skills/devforge/config.default.json`. The base registry maps each `use` name to a
 vendored engine under `.claude/skills/_vendored/`.
+
+### Why the engines are vendored
+
+Stages are driven by upstream skills (`brainstorming`, `writing-plans`, `feature-dev`,
+`staff-review`, `code-review`). devforge vendors a copy of each under `_vendored/` so a
+fresh clone or plugin install works without those plugins. Relative paths
+(`../_vendored/...`) keep the tree self-contained. They are named `ENGINE.md`, not
+`SKILL.md`, so Claude Code does not register them as slash commands — they are instruction
+text the stages read on demand, kept verbatim and adapted via the registry `scope` field.
+See [VENDORED.md](VENDORED.md).
 
 Default roster:
 
