@@ -24,7 +24,7 @@ def test_repo_use_overrides_base_use_by_name():
 
 
 def test_stage_roles_always_from_base():
-    repo = {"stage_roles": {"validate": "BOGUS"}, "uses": {}}
+    repo = {"stage_roles": {"verify_request": "BOGUS"}, "uses": {}}
     merged = merge_registry(BASE, repo)
     assert merged["stage_roles"] == BASE["stage_roles"]
 

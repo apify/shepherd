@@ -1,6 +1,6 @@
 {
   "stage_roles": {
-    "validate": "validate",
+    "verify_request": "verify_request",
     "architect": "architect",
     "implementer": "implementer",
     "reviewers": "reviewer",
@@ -8,7 +8,7 @@
   },
   "uses": {
     "brainstorming": {
-      "roles": ["validate"],
+      "roles": ["verify_request"],
       "engine": "../_vendored/brainstorming/ENGINE.md",
       "scope": "clarifying-question discipline; STRIP its spec-doc write/commit and its own approval gate (the orchestrator owns the gate); keep devforge's GitHub-issue staleness/claim-ledger check"
     },

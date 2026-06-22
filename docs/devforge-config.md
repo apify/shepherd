@@ -10,7 +10,7 @@ Two files are human-facing; the underscore-prefixed rest is internal context-rou
 - `.devforge/1-triage.md`: cheap product decision and complexity (you read).
 - `.devforge/2-design.md`: short human-reviewed plan, major changes only (you read).
 - `.devforge/_user_request.md`: raw task, written before triage.
-- `.devforge/_verified_task.md`, `.devforge/_request_fact_check.md`: validated task and its evidence ledger.
+- `.devforge/_verified_task.md`, `.devforge/_request_fact_check.md`: verified task and its evidence ledger.
 - `.devforge/_panel.json`: approved per-run reviewer subset and limits.
 - `.devforge/_state.json`: resume state, including `state.panel` after design approval.
 
@@ -29,7 +29,7 @@ Collapsing the files would pollute roles or break that independence.
 
 | Stage | Default `use` | Reads | Writes |
 |---|---|---|---|
-| `validate` | `brainstorming` | `_user_request.md`/issue, `1-triage.md`, codebase | `_verified_task.md`, `_request_fact_check.md` |
+| `verify_request` | `brainstorming` | `_user_request.md`/issue, `1-triage.md`, codebase | `_verified_task.md`, `_request_fact_check.md` |
 | `architect` | `writing-plans` | `_verified_task.md`, `_request_fact_check.md`, `1-triage.md`, codebase | `2-design.md` |
 | `implementer` | `feature-dev` | `_verified_task.md`, `_request_fact_check.md`, `2-design.md`, prior reviews | source edits, `claim.md` |
 | `reviewers` | `staff-review` | `_verified_task.md`, `2-design.md`, diff, test output | `review-<use>.md` |
@@ -51,7 +51,7 @@ Core/shared or public-contract changes are `medium` at minimum regardless of lin
 ```json
 {
   "stages": {
-    "validate": { "use": "brainstorming", "model": "opus" },
+    "verify_request": { "use": "brainstorming", "model": "opus" },
     "architect": { "use": "writing-plans", "model": "opus" },
     "implementer": { "use": "feature-dev", "model": "opus" },
     "reviewers": [{ "use": "staff-review", "model": "sonnet" }],

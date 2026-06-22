@@ -8,9 +8,9 @@
     "stages": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["validate", "architect", "implementer", "reviewers", "final_reviewers"],
+      "required": ["verify_request", "architect", "implementer", "reviewers", "final_reviewers"],
       "properties": {
-        "validate":    { "$ref": "#/$defs/stageValue" },
+        "verify_request": { "$ref": "#/$defs/stageValue" },
         "architect":   { "$ref": "#/$defs/stageValue" },
         "implementer": { "$ref": "#/$defs/stageValue" },
         "reviewers":       { "type": "array", "items": { "$ref": "#/$defs/stageValue" }, "minItems": 1 },

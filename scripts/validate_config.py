@@ -10,7 +10,7 @@ the use's `roles`.
 """
 from __future__ import annotations
 
-SINGLE_STAGES = ("validate", "architect", "implementer")
+SINGLE_STAGES = ("verify_request", "architect", "implementer")
 LIST_STAGES = ("reviewers", "final_reviewers")
 
 

@@ -9,7 +9,7 @@ Reviewers judge the diff and test output, not the implementer's claim.
 ```text
 /devforge <task>
   triage product decision        (no gate; stops only on DEFER/DECLINE)
-  validate + explore + design  -> DESIGN GATE (plan mode): approve design + review panel
+  verify request + explore + design -> DESIGN GATE (plan mode): approve design + review panel
   implement -> oracle -> blind reviewers -> final reviewers   (loop until zero findings, incl. nits)
   merge confirm (plain chat)   -> commit / PR
 ```
@@ -103,7 +103,7 @@ Default roster:
 ```json
 {
   "stages": {
-    "validate": { "use": "brainstorming", "model": "opus" },
+    "verify_request": { "use": "brainstorming", "model": "opus" },
     "architect": { "use": "writing-plans", "model": "opus" },
     "implementer": { "use": "feature-dev", "model": "opus" },
     "reviewers": [{ "use": "staff-review", "model": "sonnet" }],

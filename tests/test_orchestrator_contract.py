@@ -42,7 +42,7 @@ def test_orchestrator_has_no_triage_gate():
 def test_orchestrator_has_triage_phase_before_design():
     assert "### 1. Triage" in ORCH
     assert "PROCEED | DEFER | DECLINE" in ORCH
-    assert ORCH.index("### 1. Triage") < ORCH.index("### 2. Validate")
+    assert ORCH.index("### 1. Triage") < ORCH.index("### 2. Verify request")
     assert ORCH.index("### 1. Triage") < ORCH.index("### 5. Design gate")
 
 
@@ -50,7 +50,7 @@ def test_orchestrator_persists_raw_request_before_triage():
     assert "_user_request.md" in ORCH
     assert "Write it verbatim to" in ORCH
     assert ORCH.index("_user_request.md") < ORCH.index("### 1. Triage")
-    assert "`validate` | `_user_request.md`, `1-triage.md`" in ORCH
+    assert "`verify_request` | `_user_request.md`, `1-triage.md`" in ORCH
 
 
 def test_orchestrator_uses_flat_prefixed_layout():

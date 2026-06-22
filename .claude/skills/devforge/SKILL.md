@@ -12,7 +12,7 @@ There are exactly two human stops: the **design gate** (plan mode) before any so
 **merge confirm** before any git write. Triage has no gate — it flows into design
 unless it says DEFER/DECLINE. The loop:
 
-`_request` → `1-triage` → `validate` → `explore` → `architect` → `2-design` →
+`_user_request` → `1-triage` → `verify_request` → `explore` → `architect` → `2-design` →
 `[_design.approved]` → `implement ↔ review ↔ test` → `final review` →
 `[merge confirm]` → `commit/PR`.
 
@@ -74,7 +74,7 @@ For stage `S = {"use": U, "model": M}`:
 
 | role | reads | do NOT read | writes | format |
 |------|-------|-------------|--------|--------|
-| `validate` | `_user_request.md`, `1-triage.md`, codebase, `gh` | — | `_verified_task.md` + `_request_fact_check.md` | claim ledger where each claim is `VALID \| STALE(→corrected ref) \| LIKELY-FIXED \| UNVERIFIABLE` with evidence, plus one-line verdict |
+| `verify_request` | `_user_request.md`, `1-triage.md`, codebase, `gh` | — | `_verified_task.md` + `_request_fact_check.md` | claim ledger where each claim is `VALID \| STALE(→corrected ref) \| LIKELY-FIXED \| UNVERIFIABLE` with evidence, plus one-line verdict |
 | `architect` | `_verified_task.md`, `_request_fact_check.md`, `1-triage.md`, codebase | — | `2-design.md` | short, ~1 page: What we're solving · How · Alternatives + the call · Major changes (key files/areas only, never an exhaustive file list) · Risks/open questions. No code, no file:line dumps |
 | `implementer` | `_verified_task.md`, `_request_fact_check.md`, `2-design.md`, all prior `iter-*/review-*.md` + `final-review-*.md` | — | source edits + `iter-N/claim.md` | what done / skipped + specific reason / evidence — never edit/delete tests or spec files |
 | `reviewer` | `_verified_task.md`, `2-design.md`, `iter-N/diff.patch`, `iter-N/test-results.txt` | `claim.md`, peer reviewers' output | `iter-N/review-<use>.md` | first line `VERDICT: PASS\|FAIL`, then severity-tagged findings. PASS means zero findings, including nits |
@@ -108,13 +108,13 @@ Complexity rubric:
 Blast-radius override: core/shared code or public API/response-contract changes are at least
 `medium`, even if tiny.
 
-**Triage has no gate.** Present the overview in chat and continue to validate. Only when the
-decision is `DEFER or DECLINE`, stop and recommend against proceeding, but let the human decide.
-Set `state.phase="validate"`.
+**Triage has no gate.** Present the overview in chat and continue to verify_request. Only when
+the decision is `DEFER or DECLINE`, stop and recommend against proceeding, but let the human
+decide. Set `state.phase="verify_request"`.
 
-### 2. Validate
+### 2. Verify request
 
-Run the `validate` stage. It confirms the task is specific and still true, writing `_verified_task.md`
+Run the `verify_request` stage. It confirms the request is specific and still true, writing `_verified_task.md`
 (corrected current references) and `_request_fact_check.md` (evidence). For GitHub issues or
 code-location claims, do the staleness check here: fetch issue metadata, build a claim ledger,
 verify references against HEAD, look for already-fixed commits. If core claims are stale or

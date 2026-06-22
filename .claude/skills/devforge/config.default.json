@@ -1,6 +1,6 @@
 {
   "stages": {
-    "validate":    { "use": "brainstorming", "model": "opus" },
+    "verify_request": { "use": "brainstorming", "model": "opus" },
     "architect":   { "use": "writing-plans", "model": "opus" },
     "implementer": { "use": "feature-dev",   "model": "opus" },
     "reviewers": [
