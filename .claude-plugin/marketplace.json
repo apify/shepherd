@@ -7,7 +7,7 @@
     {
       "name": "devforge",
       "source": "./.claude",
-      "description": "Human-gated Claude Code loop for implementation and review work. Includes /devforge plus the human-only /devforge-approve-design and /devforge-approve-merge fallbacks."
+      "description": "Human-gated Claude Code loop for implementation and review work. Includes /devforge plus the human-only /devforge-approve-design and /devforge-approve-create-pr fallbacks."
     }
   ]
 }

@@ -2,7 +2,7 @@
 
 devforge is a Claude Code plugin for running coding work through a controlled,
 human-gated loop. `/devforge <task>` separates product triage, request verification,
-design, implementation, review, tests, and merge approval into durable files under
+design, implementation, review, tests, and create-PR approval into durable files under
 `.devforge/`.
 
 The important property is reviewer independence: reviewers judge the diff and oracle
@@ -30,12 +30,12 @@ flowchart TD
     Clean -->|no| Implement
     Clean -->|yes| FinalConfigured{"Final reviewers<br/>configured?"}
     FinalConfigured -->|yes| FinalReview["Run final reviewers"]
-    FinalConfigured -->|no| MergeConfirm
+    FinalConfigured -->|no| CreatePrConfirm
     FinalReview --> FinalClean{"Zero final findings?"}
     FinalClean -->|no| Implement
-    FinalClean -->|yes| MergeConfirm{"Merge confirm<br/>commit & open PR?"}
-    MergeConfirm -->|yes| Finish["Commit / push / PR"]
-    MergeConfirm -->|no| Hold["Wait"]
+    FinalClean -->|yes| CreatePrConfirm{"Create-PR confirm<br/>commit & open PR?"}
+    CreatePrConfirm -->|yes| Finish["Commit / push / PR"]
+    CreatePrConfirm -->|no| Hold["Wait"]
 ```
 
 ```text
@@ -44,12 +44,12 @@ flowchart TD
   verify request + explore + design -> DESIGN GATE: review (plan mode) + approve design + panel
   implement -> oracle -> blind reviewers -> final reviewers
                                         (loop until zero findings, including nits)
-  merge confirm (plain chat)        -> commit / PR
+  create-PR confirm (plain chat)    -> commit / PR
 ```
 
 There is one hard gate before source edits: the **design gate**. Triage is deliberately
-cheap and continues into design unless it recommends `DEFER` or `DECLINE`. Merge is a
-plain chat confirmation for `"commit & open PR?"`, not a second plan-mode gate.
+cheap and continues into design unless it recommends `DEFER` or `DECLINE`. Creating the PR is
+a plain chat confirmation for `"commit & open PR?"`, not a second plan-mode gate.
 
 At the design gate, devforge writes `_panel.json` so each run gets the right reviewer
 set for its risk: a small bug can use a small panel, while a core or public-contract
@@ -66,14 +66,14 @@ summary. It only enters the implementation loop if you ask it to fix those findi
 - `/devforge` resumes the run recorded in `.devforge/_state.json`.
 - `/devforge-approve-design` is the human-only command for approving
   `.devforge/2-design.md` and `.devforge/_panel.json` (records the panel and writes the marker).
-- `/devforge-approve-merge` is the human-only fallback for recording merge approval
-  before commit, push, or PR creation.
+- `/devforge-approve-create-pr` is the human-only fallback for recording approval
+  before commit, push, and PR creation.
 
 Plan mode (when available) is the design **review surface**, not the approval itself.
 Approval is always an explicit human affirmative — a clear chat "yes" or
-`/devforge-approve-design`; merge uses a chat yes/no or `/devforge-approve-merge`. devforge
+`/devforge-approve-design`; creating the PR uses a chat yes/no or `/devforge-approve-create-pr`. devforge
 never treats a plan-mode exit, a rejected/edited plan, or a tool error as approval, and never
-self-approves. The on-disk `_design.approved` / `_merge.approved` markers are the only approval
+self-approves. The on-disk `_design.approved` / `_create_pr.approved` markers are the only approval
 signals.
 
 ## Install
@@ -124,7 +124,7 @@ Internal files:
 - `.devforge/_panel.json`: approved reviewer panel and iteration limits.
 - `.devforge/_state.json`: resumable phase and iteration state.
 - `.devforge/_progress.md`: run log and resolved configuration notes.
-- `.devforge/_design.approved`, `.devforge/_merge.approved`: human approval markers.
+- `.devforge/_design.approved`, `.devforge/_create_pr.approved`: human approval markers.
 - `.devforge/iter-N/`: per-iteration `claim.md`, review files, diff, and test output.
 
 ### Why one file per stage

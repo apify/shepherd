@@ -1,15 +1,16 @@
 ---
-name: devforge-approve-merge
-description: HUMAN-ONLY devforge merge approval. Run after reviewing the change and .devforge evidence. Writes .devforge/_merge.approved and hands control back to /devforge. The agent cannot invoke this.
+name: devforge-approve-create-pr
+description: HUMAN-ONLY devforge create-PR approval. Run after reviewing the change and .devforge evidence. Writes .devforge/_create_pr.approved and hands control back to /devforge. The agent cannot invoke this.
 disable-model-invocation: true
 allowed-tools: Read, Bash, Skill
 argument-hint: ""
 ---
 
-# Approve merge
+# Approve PR creation
 
-Record human approval for commit, push, or PR creation. Interactive runs confirm in chat;
-this skill is the headless fallback that records the same marker.
+Record human approval for commit, push, and PR creation. Interactive runs confirm in chat;
+this skill is the headless fallback that records the same marker. This approves creating the
+PR, not merging it.
 
 1. Read `.devforge/_progress.md` plus the latest `iter-*/review-*.md` and
    `iter-*/final-review-*.md` files if present. Summarize the change, oracle status, and
@@ -19,9 +20,9 @@ this skill is the headless fallback that records the same marker.
 3. Write the marker:
    ```bash
    mkdir -p .devforge
-   printf 'approved_at=%s\napproved_commit=%s\nnote=merge approved by human via /devforge-approve-merge\n' \
+   printf 'approved_at=%s\napproved_commit=%s\nnote=create-PR approved by human via /devforge-approve-create-pr\n' \
      "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$(git rev-parse HEAD 2>/dev/null || echo none)" \
-     > .devforge/_merge.approved
+     > .devforge/_create_pr.approved
    ```
 4. Confirm briefly, then invoke `/devforge` so it resumes into finish.
 

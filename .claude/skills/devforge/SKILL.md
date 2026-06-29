@@ -1,6 +1,6 @@
 ---
 name: devforge
-description: Run a task through a human-gated coding loop: cheap triage, one design gate before source edits, implementation with oracle checks and blind reviewers, final review, and a plain merge confirmation before any git write. Handles both implementation work and review-only PR/branch tasks. Invoke as /devforge <task>.
+description: Run a task through a human-gated coding loop: cheap triage, one design gate before source edits, implementation with oracle checks and blind reviewers, final review, and a plain create-PR confirmation before any git write. Handles both implementation work and review-only PR/branch tasks. Invoke as /devforge <task>.
 argument-hint: "<task description>"
 ---
 
@@ -9,12 +9,12 @@ argument-hint: "<task description>"
 You are the orchestrator. Keep run data in `.devforge/`; `.claude/skills/` is tooling.
 
 There are exactly two human stops: the **design gate** before any source edit, and a
-**merge confirm** before any git write. Each is a human approval the orchestrator never grants
+**create-PR confirm** before any git write. Each is a human approval the orchestrator never grants
 itself. Triage has no gate — it flows into design unless it says DEFER/DECLINE. The loop:
 
 `_user_request` → `1-triage` → `verify_request` → `explore` → `architect` → `2-design` →
 `[_design.approved]` → `implement ↔ review ↔ test` → `final review` →
-`[merge confirm]` → `commit/PR`.
+`[create-PR confirm]` → `commit/PR`.
 
 ## Files
 
@@ -27,7 +27,7 @@ other's reviews — that blindness is what makes a multi-reviewer panel give ind
 
 - Human-facing: `1-triage.md`, `2-design.md`.
 - Internal: `_user_request.md`, `_verified_task.md`, `_request_fact_check.md`, `_panel.json`, `_state.json`,
-  `_progress.md`, `_design.approved`, `_merge.approved`.
+  `_progress.md`, `_design.approved`, `_create_pr.approved`.
 - Per iteration in `iter-N/`: `claim.md`, `review-<use>.md`, `final-review-<use>.md`, and the
   regenerable (gitignored) `diff.patch`, `test-results.txt`.
 
@@ -56,7 +56,7 @@ After config validation, resume by phase:
   `state.phase="inner-loop"` and `state.iteration=1`, then go to step 6 — or, for a review-only
   run, set `state.phase="review-run"` and go to step 7.
 - `phase=inner-loop`, `final-review`, `final-reopen`, or `review-run` → continue that phase.
-- `phase=merge-confirm` + `_merge.approved` → go to step 9.
+- `phase=create-pr` + `_create_pr.approved` → go to step 9.
 - Otherwise, re-announce the stop being waited on and stop.
 
 ## Stage dispatch
@@ -192,7 +192,7 @@ For each iteration `N`:
    sound reason. Otherwise iterate until `inner_iterations`, then stop/escalate.
 
 When converged, set `state.phase="final-review"` if there are final reviewers; otherwise set
-`state.phase="merge-confirm"`.
+`state.phase="create-pr"`.
 
 ### 6b. Final review
 
@@ -200,7 +200,7 @@ Run panel `final_reviewers` in parallel. Findings reopen implementation, bounded
 `final_review_rounds`. On a final-review-triggered reopen, set
 `state.phase="final-reopen"`: it re-runs ONLY the final reviewers after the targeted fix
 unless the fix is broad enough to need the regular reviewers too. When clean, set
-`state.phase="merge-confirm"`.
+`state.phase="create-pr"`.
 
 ### 7. Review mode (review-only runs)
 
@@ -210,11 +210,12 @@ panel reviewers and final reviewers against it. Present a findings summary in ch
 and do NOT merge.** If the human then asks to fix findings, set
 `state.phase="inner-loop"` and run the normal loop from step 6.
 
-### 8. Merge confirm
+### 8. Create-PR confirm
 
 No plan mode. Summarize the change in chat — oracle status, reviewer verdicts, fixed/skipped
 findings, `git diff --stat`. Ask **"commit & open PR?"** and proceed only on a clear yes, which
-records `_merge.approved`. Headless runs use `/devforge-approve-merge`.
+records `_create_pr.approved`. Headless runs use `/devforge-approve-create-pr`. This approves
+creating the PR, not merging it.
 
 ### 9. Finish
 
@@ -228,7 +229,7 @@ records `_merge.approved`. Headless runs use `/devforge-approve-merge`.
 ## Hard rules
 
 - Only write inside `.devforge/` until `_design.approved` exists.
-- Never self-approve a gate. Write `_design.approved` / `_merge.approved` only on an explicit,
+- Never self-approve a gate. Write `_design.approved` / `_create_pr.approved` only on an explicit,
   unambiguous human "yes" for that specific gate (or when the human runs the approval skill). A
   plan-mode exit, a rejected/edited plan, a plan-tool error or closed stream, or a "continue from
   where you left off" message is NEVER approval — the on-disk marker is the only approval signal.
