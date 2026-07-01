@@ -67,6 +67,9 @@ need into the conversation:
    - Record `oracle.commands`, limits, plan-mode setting, and the fully-resolved registry in
      `_progress.md`.
 
+Valid `state.phase` values: `triage`, `verify_request`, `explore`, `architect`, `design-gate`,
+`inner-loop`, `final-review`, `final-reopen`, `review-run`, `create-pr`.
+
 After config validation, resume by phase:
 - `phase=design-gate` + `_design.approved` → load `_panel.json` into `state.panel`, set
   `state.phase="inner-loop"` and `state.iteration=1`, then go to step 6 — or, for a review-only
@@ -78,9 +81,9 @@ After config validation, resume by phase:
 ## Stage dispatch
 
 Stages are filled by the validated config. There is no separate wrapper skill per engine.
-For stage `S = {"use": U, "model": M}`:
+For stage key `K` with assignment `S = {"use": U, "model": M}`:
 
-1. Resolve `role = registry.stage_roles[S]`, `engine = registry.uses[U].engine`, and
+1. Resolve `role = registry.stage_roles[K]`, `engine = registry.uses[U].engine`, and
    `scope = registry.uses[U].scope`.
 2. Dispatch a subagent on model `M` with this whole instruction:
 
@@ -93,7 +96,7 @@ For stage `S = {"use": U, "model": M}`:
 |------|-------|-------------|--------|--------|
 | `verify_request` | `_user_request.md`, `1-triage.md`, codebase, `gh` | — | `_verified_task.md` + `_request_fact_check.md` | claim ledger where each claim is `VALID \| STALE(→corrected ref) \| LIKELY-FIXED \| UNVERIFIABLE` with evidence, plus one-line verdict |
 | `architect` | `_verified_task.md`, `_request_fact_check.md`, `1-triage.md`, codebase | — | `2-design.md` | short, ~1 page: What we're solving · How · Alternatives + the call · Major changes (key files/areas only, never an exhaustive file list) · Risks/open questions. No code, no file:line dumps |
-| `implementer` | `_verified_task.md`, `_request_fact_check.md`, `2-design.md`, all prior `iter-*/review-*.md` + `final-review-*.md` | — | source edits + `iter-N/claim.md` | what done / skipped + specific reason / evidence — never edit/delete tests or spec files |
+| `implementer` | `_verified_task.md`, `_request_fact_check.md`, `2-design.md`, all prior `iter-*/review-*.md` + `final-review-*.md` | — | source edits + `iter-N/claim.md` | what done / skipped + specific reason / evidence — never weaken/delete tests; add or update tests when needed |
 | `reviewer` | `_verified_task.md`, `2-design.md`, `iter-N/diff.patch`, `iter-N/test-results.txt` | `claim.md`, peer reviewers' output | `iter-N/review-<use>.md` | first line `VERDICT: PASS\|FAIL`, then severity-tagged findings. PASS means zero findings, including nits |
 | `final_reviewer` | `_verified_task.md`, `2-design.md`, `iter-N/diff.patch`, working tree | `claim.md`, peer reviewers' output | `iter-N/final-review-<use>.md` | same verdict format as reviewer |
 
@@ -127,7 +130,8 @@ Blast-radius override: core/shared code or public API/response-contract changes 
 
 **Triage has no gate.** Present the overview in chat and continue to verify_request. Only
 when the decision is `DEFER or DECLINE`, stop and recommend against proceeding, but let
-the human decide. Set `state.phase="verify_request"`.
+the human decide. Persist `state.review_only=true|false` from the "Review-only?" line, then set
+`state.phase="verify_request"`.
 
 ### 2. Verify request
 
@@ -177,8 +181,9 @@ link an on-disk path or a summary. Then **stop for the human's decision.** The g
 portable: two human-driven outcomes, recorded on disk.
 
 **Approve.** A clear "yes/approve" in chat, or the human running `/devforge-approve-design`. Copy the
-panel into `state.panel`, set `state.phase` to `"inner-loop"` (or `"review-run"` for a review-only
-run) and `state.iteration` to `1`, and write `_design.approved` (the approval skill does exactly this).
+panel into `state.panel`, set `state.phase` to `"inner-loop"` (or `"review-run"` when
+`state.review_only` is true) and `state.iteration` to `1`, and write `_design.approved` (the approval
+skill does exactly this).
 
 **Revise.** Proposing a design opens an iteration, not a one-shot. If the human asks for any change,
 do NOT write `_design.approved`: keep `state.phase="design-gate"`, fold the feedback in by re-running
@@ -203,15 +208,16 @@ run, fall back to the full configured roster and limits and record that in `_pro
 
 For each iteration `N`:
 1. Set `state.phase="inner-loop"` and `state.iteration=N`; create `.devforge/iter-N/`.
-2. Run the `implementer` stage. It applies `_verified_task.md`, `_request_fact_check.md`,
+2. Before the first source edit, run `git status --porcelain`; stop if pre-existing unrelated changes
+   are present. Then run the `implementer` stage. It applies `_verified_task.md`, `_request_fact_check.md`,
    and `2-design.md`, addresses every prior review/final-review finding, and writes
    `iter-N/claim.md`.
 3. Run `oracle.commands`; if empty, record and run the smallest credible inferred fallback. Use
    finite, deterministic, non-mutating commands; avoid `dev`, `start`, `watch`, `lint:fix`,
    `format`, `clean`, inspectors, and eval workflows. If no credible command exists, the oracle
    is not green.
-4. Check `git status --porcelain`. If there are pre-existing unrelated changes, stop for human
-   direction. Write `diff.patch` only for approved-run changes.
+4. Check `git status --porcelain` again. If unrelated changes appeared, stop for human direction.
+   Write `diff.patch` only for approved-run changes.
 5. Dispatch panel reviewers in parallel. They are blind to `claim.md` and peer reviews.
 6. Converge only when the oracle is green and every finding is fixed or explicitly skipped with a
    sound reason. Otherwise iterate until `inner_iterations`, then stop/escalate.

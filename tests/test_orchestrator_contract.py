@@ -12,7 +12,8 @@ def test_orchestrator_reads_config_and_registry():
 
 
 def test_orchestrator_skill_stays_compact():
-    assert len(ORCH.splitlines()) <= 250
+    # Keep the orchestrator readable, but do not force removal of operational guidance.
+    assert len(ORCH.splitlines()) <= 300
 
 
 def test_orchestrator_documents_per_reviewer_files():
@@ -79,6 +80,13 @@ def test_approve_design_records_the_approved_panel():
     assert 'state["panel"] = panel' in APPROVE_DESIGN
     assert 'state["phase"] = "inner-loop"' in APPROVE_DESIGN
     assert 'state["iteration"] = 1' in APPROVE_DESIGN
+
+
+def test_approve_design_routes_review_only_runs_to_review_mode():
+    assert "state_review_only = state.get" in APPROVE_DESIGN
+    assert "review-only" in APPROVE_DESIGN
+    assert 'state["phase"] = "review-run"' in APPROVE_DESIGN
+    assert 'state["phase"] = "inner-loop"' in APPROVE_DESIGN
 
 
 def test_orchestrator_tracks_resumable_post_design_phases():

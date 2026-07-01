@@ -17,6 +17,7 @@ Record human approval of the design and review panel so implementation can begin
    ```bash
    python3 - <<'PY'
    import json
+   import re
    from pathlib import Path
    state_path = Path(".devforge/_state.json")
    panel = json.loads(Path(".devforge/_panel.json").read_text())
@@ -24,8 +25,20 @@ Record human approval of the design and review panel so implementation can begin
        if key not in panel:
            raise SystemExit(f"_panel.json missing required key: {key}")
    state = json.loads(state_path.read_text()) if state_path.exists() else {}
+   triage = Path(".devforge/1-triage.md")
+   triage_text = triage.read_text().lower() if triage.exists() else ""
+   state_review_only = state.get("review_only")
+   review_only = (
+       state_review_only is True
+       or str(state_review_only).lower() == "true"
+       or bool(re.search(r"review-only\?\s*`?yes`?", triage_text))
+   )
    state["panel"] = panel
-   state["phase"] = "inner-loop"
+   state["review_only"] = review_only
+   if review_only:
+       state["phase"] = "review-run"
+   else:
+       state["phase"] = "inner-loop"
    state["iteration"] = 1
    state_path.write_text(json.dumps(state, indent=2, sort_keys=True) + "\n")
    PY
@@ -37,6 +50,6 @@ Record human approval of the design and review panel so implementation can begin
      "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$(git rev-parse HEAD 2>/dev/null || echo none)" \
      > .devforge/_design.approved
    ```
-5. Confirm briefly, then invoke `/devforge` so it resumes into implementation.
+5. Confirm briefly, then invoke `/devforge` so it resumes into review mode or implementation.
 
 Do not edit source here.
