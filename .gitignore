@@ -1,14 +1,7 @@
-# devforge regenerates these inner-loop artifacts from git diff and oracle runs.
-# Durable evidence files remain tracked with the feature branch.
-.devforge/iter-*/diff.patch
-.devforge/iter-*/test-results.txt
-
-# Local/generated config; shipped defaults live beside the skill.
-.devforge/config.json
-.devforge/config.schema.json
-
-# Per-environment stage overrides, such as pointing a stage at a local skill.
-.devforge/config.local.json
+# devforge run data. Runs write their own .devforge/.gitignore that keeps only
+# config.json and registry.json; run evidence is summarized in the PR body instead.
+# This repo does not commit any run data; shipped defaults live beside the skill.
+.devforge/
 
 # Editor and OS noise
 .idea/

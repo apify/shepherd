@@ -1,4 +1,4 @@
 {
   "name": "devforge",
-  "description": "A controlled Claude Code loop for coding and review work. devforge runs triage, request verification, design, implementation, oracle checks, blind reviewers, final reviewers, and create-PR approval through durable .devforge files. The design gate is the only plan-mode stop before source edits; creating the PR uses a plain chat confirmation. Provides /devforge plus the human-only /devforge-approve-design and /devforge-approve-create-pr fallbacks."
+  "description": "A controlled Claude Code loop for coding and review work. devforge runs triage with a quick fact check, an interactive design stage iterated with the human, implementation, oracle checks, blind reviewers, final reviewers, and create-PR approval through durable .devforge files. The design gate is the only plan-mode stop before source edits; creating the PR uses a plain chat confirmation. Provides /devforge plus the human-only /devforge-approve-design and /devforge-approve-create-pr fallbacks."
 }

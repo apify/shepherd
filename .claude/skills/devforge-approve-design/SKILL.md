@@ -31,7 +31,7 @@ Record human approval of the design and review panel so implementation can begin
    review_only = (
        state_review_only is True
        or str(state_review_only).lower() == "true"
-       or bool(re.search(r"review-only\?\s*`?yes`?", triage_text))
+       or bool(re.search(r"review-only[?:]?\s*`?yes`?", triage_text))
    )
    state["panel"] = panel
    state["review_only"] = review_only

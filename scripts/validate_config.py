@@ -10,7 +10,7 @@ stage's role is listed in the use's `roles`.
 """
 from __future__ import annotations
 
-SINGLE_STAGES = ("verify_request", "architect", "implementer")
+SINGLE_STAGES = ("architect", "implementer")  # optional: absent means built-in, no engine
 LIST_STAGES = ("reviewers", "final_reviewers")
 
 
@@ -48,8 +48,7 @@ def validate(config: dict, registry: dict) -> list[str]:
     for stage in SINGLE_STAGES:
         entry = stages.get(stage)
         if not entry:
-            errs.append(f"missing stage '{stage}'")
-            continue
+            continue  # optional stage: built-in behavior, nothing to validate
         _check_use(stage, entry["use"], registry, errs)
     for stage in LIST_STAGES:
         entries = stages.get(stage)

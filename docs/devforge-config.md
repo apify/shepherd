@@ -12,11 +12,13 @@ default from `.claude/skills/devforge/config.default.json`. A local
 Two files are intended for humans; the underscore-prefixed files are internal
 context-routing state.
 
-- `.devforge/1-triage.md`: cheap product decision, complexity, and approach sketch.
-- `.devforge/2-design.md`: short human-reviewed plan or review scope.
+- `.devforge/1-triage.md`: cheap product decision, quick fact check, complexity, and
+  approach sketch.
+- `.devforge/2-design.md`: the living design — product first, open questions become
+  decisions during chat iteration; once approved it is the implementation or review scope.
 - `.devforge/_user_request.md`: raw task, written before triage.
-- `.devforge/_verified_task.md`: verified task with corrected current references.
-- `.devforge/_request_fact_check.md`: evidence ledger for request claims.
+- `.devforge/_codebase_map.md` (optional): explorer output for medium/large tasks,
+  reused by the design draft and the implementer.
 - `.devforge/_panel.json`: approved per-run reviewer subset and limits.
 - `.devforge/_state.json`: resume state, including `state.panel` after design approval.
 - `.devforge/_progress.md`: resolved config, run notes, oracle status, and final links.
@@ -27,30 +29,33 @@ panel from that roster and writes it to `_panel.json`.
 ### Why one file per stage
 
 Each stage writes one file and each role reads only what it needs, so context stays
-scoped and reviewers stay independent. The implementer reads the distilled
-`_verified_task.md`, not the raw `_request_fact_check.md`; reviewers judge the diff
-against `2-design.md` and never see `claim.md` or each other's reviews. That blindness
-is what keeps a multi-reviewer panel's signal independent.
+scoped and reviewers stay independent. Chat is ephemeral; every decision lands in its
+file the moment it is made. Reviewers judge the diff against `2-design.md` and never see
+`claim.md` or each other's reviews — they receive pasted content, not file access. That
+blindness is what keeps a multi-reviewer panel's signal independent.
 
 Collapsing the files would either pollute role context or break reviewer independence.
 
 ## Stages
 
-| Stage | Default `use` | Reads | Writes |
+| Stage | Default | Reads | Writes |
 |---|---|---|---|
-| `verify_request` | `brainstorming` | `_user_request.md`, `1-triage.md`, issue/code context | `_verified_task.md`, `_request_fact_check.md` |
-| `architect` | `writing-plans` | `_verified_task.md`, `_request_fact_check.md`, `1-triage.md`, codebase | `2-design.md` |
-| `implementer` | `feature-dev` | `_verified_task.md`, `_request_fact_check.md`, `2-design.md`, prior reviews | source edits, `claim.md` |
-| `reviewers` | `staff-review` | `_verified_task.md`, `2-design.md`, diff, test output | `review-<use>.md` |
-| `final_reviewers` | `thermonuclear`, `code-review` | `_verified_task.md`, `2-design.md`, diff, working tree | `final-review-<use>.md` |
+| `architect` | built-in (optional engine) | `_user_request.md`, `1-triage.md`, `_codebase_map.md` if present, codebase | `2-design.md` draft |
+| `implementer` | built-in (optional engine) | `2-design.md`, `_codebase_map.md` if present, prior reviews | source edits, `claim.md` |
+| `reviewers` | `staff-review` | pasted design, diff, test output | `review-<use>.md` |
+| `final_reviewers` | `thermonuclear`, `code-review` | pasted design, diff, test output, working tree | `final-review-<use>.md` |
+
+`architect` and `implementer` are optional in config: when absent, the built-in role
+table in the skill drives the stage with no engine. The design iteration with the human
+is always done by the orchestrator in chat, never by an engine.
 
 `reviewers` run inside the implementation loop. `final_reviewers` run after the regular
-loop is clean and can reopen a targeted fix round.
+loop is clean and can trigger bounded targeted fix rounds.
 
 ## Complexity defaults
 
-The architect proposes the panel at the design gate. These defaults keep small changes
-fast while still increasing scrutiny for broad or risky work.
+Triage assigns the tier; the design gate proposes the panel from it. These defaults keep
+small changes fast while still increasing scrutiny for broad or risky work.
 
 | Tier | Use When | Default Panel |
 |---|---|---|
@@ -66,9 +71,6 @@ Core/shared or public-contract changes are `medium` at minimum regardless of lin
 ```json
 {
   "stages": {
-    "verify_request": { "use": "brainstorming", "model": "opus" },
-    "architect": { "use": "writing-plans", "model": "opus" },
-    "implementer": { "use": "feature-dev", "model": "opus" },
     "reviewers": [{ "use": "staff-review", "model": "sonnet" }],
     "final_reviewers": [
       { "use": "thermonuclear", "model": "sonnet" },
@@ -127,8 +129,8 @@ Then reference those `use` names in `.devforge/config.json`.
 
 On each run devforge validates:
 
-- every stage is present
-- every `use` exists
+- `reviewers` and `final_reviewers` are present
+- every configured `use` exists (`architect`/`implementer` are validated only when present)
 - the `use` supports the stage role
 - reviewer and final reviewer lists contain no duplicate `use`
 

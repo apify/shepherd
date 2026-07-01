@@ -7,12 +7,11 @@
   "required": ["stages"],
   "properties": {
     "stages": {
-      "description": "Engine and model assignments for each devforge stage.",
+      "description": "Engine and model assignments for each devforge stage. `architect` and `implementer` are optional: when absent, the built-in role table drives the stage without an engine.",
       "type": "object",
       "additionalProperties": false,
-      "required": ["verify_request", "architect", "implementer", "reviewers", "final_reviewers"],
+      "required": ["reviewers", "final_reviewers"],
       "properties": {
-        "verify_request": { "$ref": "#/$defs/stageValue" },
         "architect":   { "$ref": "#/$defs/stageValue" },
         "implementer": { "$ref": "#/$defs/stageValue" },
         "reviewers":       { "description": "Roster for inner-loop reviewers. The design gate selects a per-run subset.", "type": "array", "items": { "$ref": "#/$defs/stageValue" }, "minItems": 1 },

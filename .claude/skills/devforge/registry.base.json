@@ -1,6 +1,5 @@
 {
   "stage_roles": {
-    "verify_request": "verify_request",
     "architect": "architect",
     "implementer": "implementer",
     "reviewers": "reviewer",
@@ -8,14 +7,14 @@
   },
   "uses": {
     "brainstorming": {
-      "roles": ["verify_request"],
+      "roles": ["architect"],
       "engine": "../_vendored/brainstorming/ENGINE.md",
-      "scope": "use its clarifying-question discipline; skip its spec-doc write/commit flow and approval gate because the orchestrator owns the gate; keep devforge's GitHub issue staleness and claim-ledger checks"
+      "scope": "use its clarifying-question discipline to shape the draft's Open questions (recommended answers, YAGNI, 2-3 approaches); skip its spec-doc write/commit flow and approval gate because the orchestrator owns the chat iteration and the gate; write 2-design.md only"
     },
     "writing-plans": {
       "roles": ["architect"],
       "engine": "../_vendored/writing-plans/ENGINE.md",
-      "scope": "use its planning discipline: concrete files, test strategy, no placeholders; skip docs/plans file-save behavior and execution handoff"
+      "scope": "use its planning discipline: concrete files, test strategy, no placeholders; skip docs/plans file-save behavior and execution handoff; write 2-design.md only"
     },
     "feature-dev": {
       "roles": ["implementer"],
@@ -25,17 +24,17 @@
     "staff-review": {
       "roles": ["reviewer", "final_reviewer"],
       "engine": "../_vendored/staff-review/ENGINE.md",
-      "scope": "apply to diff.patch; focus on correctness, edge cases, and test coverage"
+      "scope": "apply to the pasted diff; focus on correctness, edge cases, and test coverage; skip its argument parsing and gh/PR flows"
     },
     "thermonuclear": {
       "roles": ["reviewer", "final_reviewer"],
       "engine": "../_vendored/thermonuclear/ENGINE.md",
-      "scope": "follow as instruction text, not as an invoked skill; apply maintainability standards to diff.patch: 1k-line file ceiling, no spaghetti branching, and code-judo simplification; map presumptive blockers to blocker or major"
+      "scope": "follow as instruction text, not as an invoked skill; apply maintainability standards to the pasted diff: 1k-line file ceiling, no spaghetti branching, and code-judo simplification; map presumptive blockers to blocker or major"
     },
     "code-review": {
       "roles": ["reviewer", "final_reviewer"],
       "engine": "../_vendored/code-review/code-review.md",
-      "scope": "keep the multi-agent and confidence-score method, but read iter-N/diff.patch plus the working tree instead of `gh pr diff`; skip PR eligibility checks and PR comments; report only findings with score >= 80"
+      "scope": "keep the confidence-score method (single-context if subagents are unavailable), but review the pasted diff plus the working tree instead of `gh pr diff`; skip PR eligibility checks and PR comments; report only findings with score >= 80"
     }
   }
 }

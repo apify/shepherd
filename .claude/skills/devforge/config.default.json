@@ -1,8 +1,5 @@
 {
   "stages": {
-    "verify_request": { "use": "brainstorming", "model": "opus" },
-    "architect":   { "use": "writing-plans", "model": "opus" },
-    "implementer": { "use": "feature-dev",   "model": "opus" },
     "reviewers": [
       { "use": "staff-review",  "model": "sonnet" }
     ],
