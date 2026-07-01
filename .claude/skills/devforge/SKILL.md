@@ -35,6 +35,22 @@ Reviewer independence: reviewers read only `_verified_task.md`, `2-design.md`,
 `iter-N/diff.patch`, and `iter-N/test-results.txt`. Never give them `claim.md` or peer
 reviews.
 
+## Keep the human in the loop (non-terminal sessions)
+
+`.devforge/*.md` live on the run's filesystem. A web/mobile/remote human sees only the chat
+stream — they cannot open those files or reliably type a slash-command. Surface everything they
+need into the conversation:
+
+- **At the design gate, show the FULL `2-design.md`** (and `1-triage.md` on request) — paste the
+  complete content, or render it as an Artifact / send it as a file. Never summarise it away or
+  point at an on-disk path as the only way to see it. Prefer plan mode with the full design as the
+  plan body (step 5): it shows the whole design and gives a one-tap approve.
+- **Keep a visible progress view.** `_progress.md` is internal. Emit a one-line chat status at every
+  phase transition (phase · iteration · oracle · reviewer verdicts · pending gate); for a
+  remote/mobile session, maintain that as a live progress Artifact, updated at each transition.
+- **Gates are chat-first.** The chat "approve / revise" (design) and "commit & open PR?" (create-PR)
+  paths are primary; slash-commands are a fallback, not the only door.
+
 ## Setup / resume
 
 1. `mkdir -p .devforge`.
@@ -155,8 +171,10 @@ then adjust for the actual design scope. Write `.devforge/_panel.json`:
 
 The approved panel must be a subset of the configured roster.
 
-Present `2-design.md` and `_panel.json` for review and **stop for the human's decision.** The gate
-is generic and portable: two human-driven outcomes, recorded on disk.
+Surface the FULL `2-design.md` + `_panel.json` to the human — paste the complete design in chat,
+or render it as an Artifact / send it as a file (see "Keep the human in the loop"); never just
+link an on-disk path or a summary. Then **stop for the human's decision.** The gate is generic and
+portable: two human-driven outcomes, recorded on disk.
 
 **Approve.** A clear "yes/approve" in chat, or the human running `/devforge-approve-design`. Copy the
 panel into `state.panel`, set `state.phase` to `"inner-loop"` (or `"review-run"` for a review-only
@@ -169,8 +187,9 @@ as the human wants; the gate clears only on approval.
 
 **Plan mode (any agent that has one — Claude Code, Cursor, Codex…; optional).** With
 `plan_mode_gate=true` and plan-mode tools available (`EnterPlanMode`/`ExitPlanMode` on Claude Code),
-mirror `2-design.md` + `_panel.json` into the plan as an adapter over the two outcomes: accepting it
-IS Approve; rejecting or editing it IS Revise. On a plan-tool error or unavailability, fall back to chat.
+mirror the FULL `2-design.md` + `_panel.json` into the plan body (not a summary) as an adapter over
+the two outcomes: accepting it IS Approve; rejecting or editing it IS Revise. On a plan-tool error or
+unavailability, fall back to chat (paste the full design there).
 
 **Never self-approve.** Never infer approval from a plan-tool error, a plan-mode transition, or a
 "continue" message — approval is a human "yes", accepting the plan, or the approval skill. The
@@ -242,6 +261,8 @@ creating the PR, not merging it.
   marker is the only approval signal.
 - Triage has no gate; it stops only on DEFER/DECLINE.
 - Keep design short and high-level: major changes only, never an exhaustive file list.
+- Surface human-facing artifacts (full `2-design.md`, live progress) into the human's channel; never
+  rely on on-disk files or slash-commands as the only way to see or approve them.
 - The panel, not the roster, drives the run; never run a `use` not in config.
 - Trust the oracle, not model self-reports. Never weaken/delete tests.
 - PASS means zero findings of any severity. Any nit makes `FAIL`.

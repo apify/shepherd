@@ -56,6 +56,11 @@ set for its risk: a small bug can use a small panel, while a core or public-cont
 change can use the full roster. The design itself stays short, about one page, and
 lists only major changes.
 
+On web/mobile/remote sessions the human sees only the chat stream, so devforge surfaces
+everything into the conversation: the full `2-design.md` is pasted or rendered as an Artifact
+(not just linked on disk), and run progress shows as a one-line status at each phase transition —
+never assume the human can open `.devforge/` files or type a slash-command.
+
 Review-only work is first-class. For a task like "review PR/branch X", devforge runs
 triage, design, the approved review panel against the existing diff, and a findings
 summary. It only enters the implementation loop if you ask it to fix those findings.
