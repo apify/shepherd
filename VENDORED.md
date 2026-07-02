@@ -5,7 +5,8 @@ clone, plugin install, or claude.ai/code attachment works without installing add
 plugins.
 
 Engines are opt-in: the default config assigns engines only to the reviewer stages;
-`architect` and `implementer` run built-in unless a config assigns them a `use`. The
+the single stages (`verify`, `architect`, `implementer`, `success_criteria`,
+`fulfillment`) run built-in unless a config assigns them a `use`. The
 vendored files are treated as upstream instruction text. devforge-specific behavior
 lives in `.claude/skills/devforge/registry.base.json`, where each `use` entry supplies a
 scope for the engine, and every dispatched stage runs non-interactively (open questions

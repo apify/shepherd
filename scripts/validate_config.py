@@ -10,7 +10,9 @@ stage's role is listed in the use's `roles`.
 """
 from __future__ import annotations
 
-SINGLE_STAGES = ("architect", "implementer")  # optional: absent means built-in, no engine
+SINGLE_STAGES = (  # optional: absent means built-in, no engine
+    "verify", "architect", "implementer", "success_criteria", "fulfillment",
+)
 LIST_STAGES = ("reviewers", "final_reviewers")
 
 

@@ -3,8 +3,9 @@ from conftest import REPO_ROOT, load_json
 REGISTRY = load_json(REPO_ROOT / ".claude/skills/devforge/registry.base.json")
 CONFIG = load_json(REPO_ROOT / ".claude/skills/devforge/config.default.json")
 
-STAGES = {"architect", "implementer", "reviewers", "final_reviewers"}
-ROLES = {"architect", "implementer", "reviewer", "final_reviewer"}
+SINGLE_STAGES = ("verify", "architect", "implementer", "success_criteria", "fulfillment")
+STAGES = set(SINGLE_STAGES) | {"reviewers", "final_reviewers"}
+ROLES = set(SINGLE_STAGES) | {"reviewer", "final_reviewer"}
 
 
 def test_stage_roles_cover_every_stage():
@@ -23,7 +24,7 @@ def test_every_use_declares_known_roles():
 
 def test_every_config_use_exists_in_registry():
     stages = CONFIG["stages"]
-    names = [stages[s]["use"] for s in ("architect", "implementer") if s in stages]
+    names = [stages[s]["use"] for s in SINGLE_STAGES if s in stages]
     names += [e["use"] for s in ("reviewers", "final_reviewers") for e in stages[s]]
     for name in names:
         assert name in REGISTRY["uses"], f"config uses '{name}' but registry has no such entry"
@@ -33,7 +34,7 @@ def test_no_scope_references_a_retired_run_filename():
     # Scope strings drift when run files get renamed; catch retired names early.
     import re
 
-    retired = ("_verified_task.md", "_request_fact_check.md", "design.md", "task.md")
+    retired = ("_verified_task.md", "design.md", "task.md")
     for name, spec in REGISTRY["uses"].items():
         scope = spec.get("scope", "")
         for stale in retired:

@@ -13,7 +13,7 @@ def test_orchestrator_reads_config_and_registry():
 
 def test_orchestrator_skill_stays_compact():
     # Keep the orchestrator readable, but do not force removal of operational guidance.
-    assert len(ORCH.splitlines()) <= 300
+    assert len(ORCH.splitlines()) <= 340
 
 
 def test_orchestrator_documents_per_reviewer_files():
@@ -33,24 +33,34 @@ def test_orchestrator_keeps_the_two_marker_gates():
 
 
 def test_orchestrator_has_no_triage_gate():
-    # Triage flows into design; it never waits on an approval marker.
+    # Triage flows onward; it never waits on an approval marker.
     assert "triage.approved" not in ORCH
     assert "TRIAGE GATE" not in ORCH
     assert "Triage has no gate" in ORCH
     assert "DEFER or DECLINE" in ORCH
 
 
-def test_orchestrator_has_triage_phase_before_design():
+def test_pipeline_order_triage_verify_design_gate():
     assert "### 1. Triage" in ORCH
     assert "PROCEED | DEFER | DECLINE" in ORCH
-    assert ORCH.index("### 1. Triage") < ORCH.index("### 2. Design")
-    assert ORCH.index("### 2. Design") < ORCH.index("### 3. Design gate")
+    assert (ORCH.index("### 1. Triage")
+            < ORCH.index("### 2. Verify")
+            < ORCH.index("### 3. Design")
+            < ORCH.index("### 4. Design gate"))
 
 
-def test_triage_does_a_quick_fact_check():
-    # Core claims are tagged with the ledger enum already at triage.
-    assert "Core claims" in ORCH
+def test_orchestrator_routes_subagents_judge():
+    # Core principle: the orchestrator never authors a judgment file.
+    assert "The orchestrator routes; subagents judge" in ORCH
+    assert "never writes a judgment file" in ORCH
+
+
+def test_verify_stage_owns_the_claim_ledger():
+    # Always-on verify subagent; ledger is authoritative and never empty.
+    assert "_request_fact_check.md" in ORCH
     assert "VALID | STALE | LIKELY-FIXED | UNVERIFIABLE" in ORCH
+    assert "never empty" in ORCH
+    assert "Verify runs on every run" in ORCH
 
 
 def test_orchestrator_persists_raw_request_before_triage():
@@ -61,16 +71,17 @@ def test_orchestrator_persists_raw_request_before_triage():
 
 
 def test_orchestrator_uses_flat_prefixed_layout():
-    # Two human-facing files are numbered; internal routing files use an underscore.
+    # Numbered files are human-facing; internal routing files use an underscore.
     assert "1-triage.md" in ORCH
     assert "2-design.md" in ORCH
-    for internal in ("_user_request.md", "_codebase_map.md", "_state.json",
-                     "_panel.json", "_progress.md"):
+    assert "3-success-criteria.md" in ORCH
+    for internal in ("_user_request.md", "_request_fact_check.md", "_codebase_map.md",
+                     "_design_feedback.md", "_state.json", "_panel.json", "_progress.md"):
         assert internal in ORCH
 
 
 def test_orchestrator_documents_why_files_are_separate():
-    # The per-stage file split is the context-routing / reviewer-independence mechanism.
+    # The per-stage file split is the context-routing / judgment-independence mechanism.
     assert "context" in ORCH.lower()
     assert "independen" in ORCH.lower()
 
@@ -81,22 +92,26 @@ def test_design_is_product_first():
     assert "product questions first" in ORCH
 
 
-def test_design_stage_drafts_then_iterates_with_the_human():
-    assert "### 2. Design" in ORCH
+def test_success_criteria_are_blind():
+    # Architect never reads criteria; criteria author never sees the solution.
+    assert "architect never reads it" in ORCH
+    assert "never sees the solution" in ORCH
+    # Criteria author gets only the pasted product sections.
+    assert "\"What we're solving\" and \"How it will work\" sections" in ORCH
+
+
+def test_design_iteration_uses_feedback_file_and_revision_passes():
+    assert "### 3. Design" in ORCH
     assert "one question at a time" in ORCH
     assert "recommended answer" in ORCH
     assert "Open questions is empty" in ORCH
     assert "Decisions" in ORCH
-    # Iteration is a chat activity of the orchestrator, never delegated.
-    assert "never a subagent" in ORCH
-
-
-def test_design_has_fact_check_section():
-    assert "## Fact check" in ORCH
-    assert "claim ledger" in ORCH
-    # The ledger is unconditional: a naive model never gets to decide to skip it.
-    assert "Always fill the Fact check" in ORCH
-    assert "never empty" in ORCH
+    # Batched rounds; the orchestrator writes only the feedback transcript, verbatim.
+    assert "Batch a round of answers" in ORCH
+    assert "verbatim" in ORCH and "_design_feedback.md" in ORCH
+    # Architect re-runs revise with prior context instead of re-drafting.
+    assert "revision pass" in ORCH
+    assert "every rewrite is a subagent's" in ORCH
 
 
 def test_explorer_writes_a_reused_codebase_map():
@@ -108,6 +123,11 @@ def test_orchestrator_selects_review_panel_at_design_gate():
     assert "state.panel" in ORCH
     assert "_panel.json" in ORCH
     assert "subset of the configured roster" in ORCH
+
+
+def test_design_gate_approves_design_criteria_and_panel():
+    assert "Approval covers all three" in ORCH
+    assert "3-success-criteria.md" in APPROVE_DESIGN
 
 
 def test_approve_design_records_the_approved_panel():
@@ -128,7 +148,8 @@ def test_approve_design_review_only_parse_accepts_colon_and_question_mark():
     assert "review-only[?:]" in APPROVE_DESIGN
 
 
-def test_orchestrator_tracks_resumable_post_design_phases():
+def test_orchestrator_tracks_resumable_phases():
+    assert "`triage`, `verify`, `design`" in ORCH
     for phase in ("inner-loop", "final-review", "review-run", "create-pr"):
         assert phase in ORCH
     assert 'state.phase="create-pr"' in ORCH
@@ -182,6 +203,14 @@ def test_orchestrator_converges_on_severity():
     assert "every skipped finding with its reason" in ORCH
 
 
+def test_fulfillment_check_gates_the_pr():
+    # An explicit criteria-vs-reality check runs before the create-PR confirm.
+    assert "fulfillment.md" in ORCH
+    assert "MET | NOT MET" in ORCH or "MET \\| NOT MET" in ORCH
+    assert "reopens the inner loop" in ORCH
+    assert "No PR without fulfillment" in ORCH
+
+
 def test_orchestrator_has_first_class_review_mode():
     # Review-only tasks skip implement, run the panel on the existing diff, stop at findings.
     assert "Review mode" in ORCH
@@ -205,7 +234,7 @@ def test_orchestrator_accept_approves_revise_iterates_no_self_approve():
 def test_orchestrator_create_pr_is_chat_confirm_not_plan_mode():
     assert "create-PR confirm" in ORCH
     assert "commit & open PR?" in ORCH
-    assert "No plan mode" in ORCH
+    assert "no plan mode" in ORCH.lower()
 
 
 def test_orchestrator_design_is_short_major_changes_only():

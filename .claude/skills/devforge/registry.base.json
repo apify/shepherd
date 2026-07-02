@@ -1,7 +1,10 @@
 {
   "stage_roles": {
+    "verify": "verify",
     "architect": "architect",
     "implementer": "implementer",
+    "success_criteria": "success_criteria",
+    "fulfillment": "fulfillment",
     "reviewers": "reviewer",
     "final_reviewers": "final_reviewer"
   },

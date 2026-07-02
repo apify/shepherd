@@ -1,29 +1,42 @@
 # devforge
 
 devforge is a Claude Code plugin for running coding work through a controlled,
-human-gated loop. `/devforge <task>` separates product triage, design, implementation,
-review, tests, and create-PR approval into durable files under `.devforge/`.
+human-gated loop. `/devforge <task>` separates product triage, request verification,
+design, success criteria, implementation, review, tests, fulfillment, and create-PR
+approval into durable files under `.devforge/`.
 
-Two properties matter most:
+The core principle: **the orchestrator routes; subagents judge; files are the only
+handoff.** Every judgment — the claim ledger, the design, the success criteria, each
+review, the fulfillment check — is a subagent writing one file with a narrow read set.
+The orchestrator never authors a judgment file; it dispatches, shows you the results,
+and records your feedback verbatim.
 
-- **The design is shaped with you, not for you.** After a cheap triage with a quick fact
-  check, devforge drafts a product-first design with explicit open questions, then
-  iterates on it with you in chat — proactively, one question at a time, each with a
-  recommended answer — until no open questions remain. The design gate then becomes a
+Three properties matter most:
+
+- **The design is shaped with you.** After a cheap triage and an always-on fact check,
+  subagents draft a product-first design and independent success criteria. devforge then
+  iterates with you in chat — one question at a time, each with a recommended answer,
+  product questions first. Your answers go verbatim into a feedback file and the
+  architect revises its own draft in a cheap revision pass. The design gate becomes a
   quick confirmation of something you already shaped.
-- **Reviewer independence.** Reviewers judge the diff and oracle output against the
-  approved design. They receive pasted content — never file access — so they cannot see
-  the implementer's claims or each other's findings.
+- **Judgments are blind.** The architect never sees the success criteria; the criteria
+  author never sees the proposed solution; reviewers get pasted design + criteria + diff
+  + tests — never the implementer's claims or each other's findings.
+- **"Done" is checked, not claimed.** Before the create-PR confirm, a fulfillment
+  subagent judges the diff and tests against the success criteria written before the
+  solution existed — `MET | NOT MET` per criterion, with evidence.
 
 ## Flow
 
 ```mermaid
 flowchart TD
-    Start["/devforge <task>"] --> Triage["Triage + quick fact check<br/>PROCEED / DEFER / DECLINE"]
-    Triage -->|PROCEED| Draft["Draft 2-design.md<br/>product first, open questions"]
+    Start["/devforge <task>"] --> Triage["Triage (orchestrator)<br/>PROCEED / DEFER / DECLINE"]
+    Triage -->|PROCEED| Verify["Verify (subagent, always)<br/>claim ledger"]
     Triage -->|DEFER or DECLINE| Stop["Stop with recommendation"]
-    Draft --> Iterate["Iterate with the human<br/>until no open questions"]
-    Iterate --> Gate{"Design gate<br/>approve design + panel"}
+    Verify -->|claims hold| Draft["Architect drafts 2-design.md<br/>then success criteria (blind)"]
+    Verify -->|stale / already fixed| Stop
+    Draft --> Iterate["Iterate with the human<br/>feedback file + revision passes"]
+    Iterate --> Gate{"Design gate<br/>approve design + criteria + panel"}
     Gate -->|approved| ReviewOnly{"Review-only task?"}
     Gate -->|revise| Iterate
     ReviewOnly -->|yes| ExistingDiff["Build diff from branch/PR"]
@@ -34,69 +47,75 @@ flowchart TD
     Oracle --> Reviewers["Run blind reviewers"]
     Reviewers --> Clean{"Oracle green,<br/>no blocker/major open?"}
     Clean -->|no| Implement
-    Clean -->|yes| FinalConfigured{"Final reviewers<br/>configured?"}
-    FinalConfigured -->|yes| FinalReview["Run final reviewers"]
-    FinalConfigured -->|no| CreatePrConfirm
-    FinalReview --> FinalClean{"Clean?"}
-    FinalClean -->|no| Implement
-    FinalClean -->|yes| CreatePrConfirm{"Create-PR confirm<br/>commit & open PR?"}
+    Clean -->|yes| FinalReview["Final reviewers (if configured)"]
+    FinalReview -->|findings| Implement
+    FinalReview -->|clean| Fulfillment["Fulfillment check<br/>criteria vs reality"]
+    Fulfillment -->|NOT MET| Implement
+    Fulfillment -->|MET| CreatePrConfirm{"Create-PR confirm<br/>commit & open PR?"}
     CreatePrConfirm -->|yes| Finish["Commit / push / PR"]
     CreatePrConfirm -->|no| Hold["Wait"]
 ```
 
 ```text
 /devforge <task>
-  triage + quick fact check           (no gate; stops only on DEFER/DECLINE)
-  draft design (product first) -> iterate with the human until no open questions
-                                   -> DESIGN GATE: approve design + panel
+  triage (orchestrator product screen; no gate, stops only on DEFER/DECLINE)
+  verify (subagent, always)      -> claim ledger; stops if the request is stale
+  architect + success criteria   -> blind drafts
+  iterate with the human         -> feedback file + revision passes
+                                 -> DESIGN GATE: approve design + criteria + panel
   implement -> oracle -> blind reviewers -> final reviewers
-                                      (loop until no blocker/major; skips recorded)
-  create-PR confirm (plain chat)   -> commit / PR
+                                    (loop until no blocker/major; skips recorded)
+  fulfillment (subagent)         -> every criterion MET, or reopen / ask
+  create-PR confirm (plain chat) -> commit / PR
 ```
 
-There is one hard gate before source edits: the **design gate**. Triage is deliberately
-cheap and continues into design unless it recommends `DEFER` or `DECLINE`. Creating the
-PR is a plain chat confirmation for `"commit & open PR?"`, not a second plan-mode gate.
+There are two human gates: the **design gate** before source edits and the **create-PR
+confirm** before any git write. Triage is deliberately cheap and continues unless it
+recommends `DEFER` or `DECLINE`.
 
 At the design gate, devforge writes `_panel.json` so each run gets the right reviewer
 set for its risk: a small bug can use a small panel, while a core or public-contract
-change can use the full roster. The design itself stays short, about one page, product
-perspective first, and lists only major changes.
+change can use the full roster. Approval covers the design, the success criteria, and
+the panel together.
 
 Convergence is severity-gated: no `blocker` or `major` finding may stay open, and every
 `minor`/`nit` is either fixed or skipped with a specific reason — with all skips shown to
-you at the create-PR confirm.
+you at the create-PR confirm. No PR happens without fulfillment: every criterion `MET`,
+or you explicitly accept the recorded exception.
 
 On web/mobile/remote sessions the human sees only the chat stream, so devforge surfaces
-everything into the conversation: the full `2-design.md` is pasted or rendered as an
-Artifact (not just linked on disk), and run progress shows as a one-line status at each
-phase transition — never assume the human can open `.devforge/` files or type a
-slash-command.
+everything into the conversation: the full `2-design.md` and `3-success-criteria.md` are
+pasted or rendered as an Artifact (not just linked on disk), and run progress shows as a
+one-line status at each phase transition — never assume the human can open `.devforge/`
+files or type a slash-command.
 
 Review-only work is first-class. For a task like "review PR/branch X", devforge runs
-triage, design (the review scope), the approved review panel against the existing diff,
-and a findings summary. It only enters the implementation loop if you ask it to fix
-those findings.
+triage, verify, design (the review scope), the approved review panel against the
+existing diff, and a findings summary. It only enters the implementation loop if you ask
+it to fix those findings.
 
 ## Commands
 
 - `/devforge <task>` starts a new run.
 - `/devforge` resumes the run recorded in `.devforge/_state.json`.
 - `/devforge-approve-design` is the human-only command for approving
-  `.devforge/2-design.md` and `.devforge/_panel.json` (records the panel and writes the marker).
+  `.devforge/2-design.md`, `.devforge/3-success-criteria.md`, and `.devforge/_panel.json`
+  (records the panel and writes the marker).
 - `/devforge-approve-create-pr` is the human-only fallback for recording approval
   before commit, push, and PR creation.
 
-The design gate is generic and portable: devforge presents `2-design.md` and the panel and waits
-for one of two human-driven outcomes. **Approve** — a chat "yes" or `/devforge-approve-design` —
-writes `_design.approved` and proceeds. **Revise** — any change request — goes back to the design
-iteration and re-presents, iterating until you approve. For any agent that has a plan mode
-(Claude Code, Cursor, Codex, …), `plan_mode_gate: true` (the default) presents this through plan
-mode as an adapter: accepting the plan is Approve, rejecting or editing it is Revise; if the plan
-tool errors or is unavailable (remote, headless, web sessions) it falls back to the chat gate.
-The agent never self-approves — a plan-tool error or a "continue" message is never approval.
-Creating the PR uses a chat yes/no or `/devforge-approve-create-pr`. The on-disk
-`_design.approved` / `_create_pr.approved` markers are the only approval signals.
+The design gate is generic and portable: devforge presents the design, criteria, and
+panel and waits for one of two human-driven outcomes. **Approve** — a chat "yes" or
+`/devforge-approve-design` — writes `_design.approved` and proceeds. **Revise** — any
+change request — goes back to the design iteration (feedback file + revision passes) and
+re-presents, iterating until you approve. For any agent that has a plan mode (Claude
+Code, Cursor, Codex, …), `plan_mode_gate: true` (the default) presents this through plan
+mode as an adapter: accepting the plan is Approve, rejecting or editing it is Revise; if
+the plan tool errors or is unavailable (remote, headless, web sessions) it falls back to
+the chat gate. The agent never self-approves — a plan-tool error or a "continue" message
+is never approval. Creating the PR uses a chat yes/no or `/devforge-approve-create-pr`.
+The on-disk `_design.approved` / `_create_pr.approved` markers are the only approval
+signals.
 
 ## Install
 
@@ -137,32 +156,36 @@ committed; run evidence is summarized in the PR body instead.
 
 Human-facing files:
 
-- `.devforge/1-triage.md`: product decision, quick fact check, complexity, approach sketch.
-- `.devforge/2-design.md`: the living design — product first, with open questions that
-  become decisions during iteration; once approved, the implementation or review scope.
+- `.devforge/1-triage.md`: product decision, complexity, approach sketch (orchestrator).
+- `.devforge/2-design.md`: product-first design with open questions (architect subagent).
+- `.devforge/3-success-criteria.md`: testable "done", written blind to the solution
+  (success-criteria subagent).
 
 Internal files:
 
 - `.devforge/_user_request.md`: raw task text.
-- `.devforge/_codebase_map.md` (optional): explorer output for medium/large tasks,
-  reused by the design draft and the implementer.
+- `.devforge/_request_fact_check.md`: authoritative claim ledger (verify subagent).
+- `.devforge/_codebase_map.md` (optional): explorer output for medium/large tasks.
+- `.devforge/_design_feedback.md`: the human's iteration answers, verbatim
+  (orchestrator-written; triggers architect/criteria revision passes).
 - `.devforge/_panel.json`: approved reviewer panel and iteration limits.
 - `.devforge/_state.json`: resumable phase and iteration state.
 - `.devforge/_progress.md`: run log and resolved configuration notes.
 - `.devforge/_design.approved`, `.devforge/_create_pr.approved`: human approval markers.
-- `.devforge/iter-N/`: per-iteration `claim.md`, review files, diff, and test output.
+- `.devforge/iter-N/`: per-iteration `claim.md`, review files, `fulfillment.md`, diff,
+  and test output.
 
 ### Why one file per stage
 
 The files are not bookkeeping; they are the context-routing mechanism. Each stage writes
-one file, and each role reads only what it needs. Chat is ephemeral — every decision is
-written into its file the moment it is made, so a run can resume from disk at any point.
-Reviewers judge the diff against `2-design.md` and remain blind to the implementer's
-`claim.md` and to peer reviews: they receive pasted content, never file access.
+one file, and each role reads only what it needs. Chat is ephemeral — your feedback goes
+verbatim into `_design_feedback.md`, and subagents fold it into their files, so a run can
+resume from disk at any point. The architect never reads the success criteria; the
+criteria author never sees the solution; reviewers and the fulfillment checker receive
+pasted content, never file access, and stay blind to `claim.md` and to each other.
 
-That split is what makes a multi-reviewer panel produce independent signal. Collapsing
-the run into one shared context would either pollute each role or break reviewer
-independence.
+That split is what makes multiple judgments produce independent signal. Collapsing the
+run into one shared context would either pollute each role or break that independence.
 
 ## Configuration
 
@@ -187,10 +210,10 @@ Default config:
 }
 ```
 
-`architect` and `implementer` are optional: when absent, the built-in role table in the
-skill drives the stage with no engine. Assign an engine (`writing-plans`, `feature-dev`,
-`brainstorming`, or a repo `use` such as `dig`) only when you want its specific
-methodology.
+Single stages (`verify`, `architect`, `implementer`, `success_criteria`, `fulfillment`)
+are optional: when absent, the built-in role table in the skill drives the stage with no
+engine. Assign an engine (`writing-plans`, `feature-dev`, `brainstorming`, or a repo
+`use` such as `dig`) only when you want its specific methodology.
 
 Use finite, non-mutating oracle commands such as type checks, lint checks, builds, unit
 tests, and targeted integration tests. Avoid dev servers, watchers, fixers, cleanup
