@@ -324,6 +324,9 @@ with `state.phase="inner-loop"` and run the normal loop from step 5.
 - Blindness: architect never reads the success criteria; the criteria author never sees the
   solution; reviewers and fulfillment get pasted content only — never file access, never
   `claim.md`, never peer reviews.
+- Never commit `.devforge/` files. It's repo-gitignored; the run's own `.devforge/.gitignore`
+  exceptions (`config.json`, `registry.json`) are local-only, not an invitation to `git add -f`
+  or commit them.
 - Keep design short and high-level: major changes only, never an exhaustive file list.
 - Surface human-facing artifacts into the human's channel; on-disk files and slash-commands are
   never the only door.
