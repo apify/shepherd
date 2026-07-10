@@ -31,14 +31,17 @@ ephemeral; the files are the record.
   `_design_feedback.md`, `_panel.json`, `_state.json`, `_progress.md`, `_design.approved`,
   `_create_pr.approved`.
 - Per iteration in `iter-N/`: `claim.md`, `review-<use>.md`, `final-review-<use>.md`,
-  `fulfillment.md`, and the regenerable (gitignored) `diff.patch`, `test-results.txt`.
+  `fulfillment.md`, and the regenerable (gitignored) `diff.patch`, `test-results.txt`
+  (plus `baseline.txt` in `iter-1/` only — the pre-change oracle metrics).
 
 **Why one file per stage:** each stage writes one file and each role reads ONLY what it needs, so
 stage context stays scoped and judgments stay independent. Reviewers judge the diff against
-`2-design.md` + `3-success-criteria.md`, never `claim.md` or peer reviews — paste the allowed
-file contents into each reviewer's prompt instead of granting file access. The architect never
-sees the success criteria; the criteria author never sees the proposed solution. That blindness
-is what keeps every panel's signal independent.
+`2-design.md` + `3-success-criteria.md`, never `claim.md` or peer reviews — the design and
+criteria are pasted into the reviewer's prompt; `.devforge/` itself is never granted. Blindness
+applies to judgments, never to ground truth: every reviewer gets read access to the repository
+and its git history — a reviewer who can't run `git show HEAD:<file>` can't verify a refactor's
+equivalence claims. The architect never sees the success criteria; the criteria author never
+sees the proposed solution. That blindness is what keeps every panel's signal independent.
 
 ## Keep the human in the loop (non-terminal sessions)
 
@@ -111,10 +114,10 @@ Method line omitted. For stage key `K` with assignment `S`:
 | `verify` | `_user_request.md`, `1-triage.md`, codebase, referenced issue; **for a review-only run also the PR/branch description and its diff — treat that description as the claim source** | `2-design.md`, `3-success-criteria.md` | `_request_fact_check.md` | claim ledger: every request claim tagged `VALID \| STALE \| LIKELY-FIXED \| UNVERIFIABLE` with evidence, plus a one-line verdict — never empty |
 | `explorer` | codebase | `.devforge/` internals | `_codebase_map.md` | ≤1 page: key files · patterns · data flow · risks |
 | `architect` | `_user_request.md`, `1-triage.md`, `_request_fact_check.md`, `_codebase_map.md` if present, codebase; on a revision pass also its previous `2-design.md` + `_design_feedback.md` | `3-success-criteria.md` | `2-design.md` | the design template in step 3 |
-| `success_criteria` | pasted content of the "What we're solving" and "How it will work" sections of `2-design.md`, plus `_user_request.md` and `1-triage.md` — nothing else | the rest of `2-design.md` (the solution), `claim.md` | `3-success-criteria.md` | numbered, testable criteria — each verifiable by a command or an observable behavior; no solution details |
+| `success_criteria` | pasted content of the "What we're solving" and "How it will work" sections of `2-design.md`, plus `_user_request.md`, `1-triage.md`, and `_request_fact_check.md` (verified facts — real paths, real coverage gaps — so criteria reference reality instead of guessing; it contains no solution) — nothing else | the rest of `2-design.md` (the solution), `claim.md` | `3-success-criteria.md` | numbered, testable criteria — each verifiable by a command or an observable behavior; no solution details |
 | `implementer` | `2-design.md`, `3-success-criteria.md`, `_request_fact_check.md`, `_codebase_map.md` if present, all prior `iter-*/review-*.md` + `final-review-*.md` + `fulfillment.md` | — | source edits + `iter-N/claim.md` | what done · every finding fixed or skipped with a specific reason · for a behavior change, add a regression test — ideally shown red before the fix and green after, with the red→green noted in `claim.md` — never weaken/delete tests |
-| `reviewer` | pasted content of `2-design.md`, `3-success-criteria.md`, `iter-N/diff.patch`, `iter-N/test-results.txt` — nothing else | `claim.md`, peer reviewers' output | `iter-N/review-<use>.md` | first line `VERDICT: PASS\|FAIL` (PASS = zero findings), then findings tagged `blocker\|major\|minor\|nit` |
-| `final_reviewer` | same as reviewer, plus the working tree | `claim.md`, peer reviewers' output | `iter-N/final-review-<use>.md` | same verdict format as reviewer |
+| `reviewer` | pasted content of `2-design.md`, `3-success-criteria.md`, `iter-N/diff.patch`, `iter-N/test-results.txt`, plus the repository itself (working tree, git history, read-only commands) — no other `.devforge/` files | `claim.md`, peer reviewers' output | `iter-N/review-<use>.md` | first line `VERDICT: PASS\|FAIL` (PASS = zero findings), then findings tagged `blocker\|major\|minor\|nit` |
+| `final_reviewer` | same as reviewer, but judging the post-fix integrated state: interactions with unchanged code, consumer/contract impact, doc/AGENTS staleness — not a second pass over the patch | `claim.md`, peer reviewers' output | `iter-N/final-review-<use>.md` | same verdict format as reviewer |
 | `fulfillment` | pasted content of `3-success-criteria.md`, `iter-N/diff.patch`, `iter-N/test-results.txt`, `iter-N/claim.md`, plus the working tree (may run the non-mutating check a criterion names) | `2-design.md` solution details, review files | `iter-N/fulfillment.md` | first line `VERDICT: PASS\|FAIL`, then each criterion `MET \| NOT MET` with evidence |
 
 ### Model tiering
@@ -190,7 +193,7 @@ present its verdict and stop with a recommendation; the human decides. Otherwise
 
   For a review-only run, `2-design.md` is the review scope: what to check and which reviewers.
 - Dispatch the `success_criteria` stage: paste it ONLY the two product sections of the design
-  (plus request and triage) and have it write `.devforge/3-success-criteria.md`. It defines
+  (plus request, triage, and the fact-check) and have it write `.devforge/3-success-criteria.md`. It defines
   "done" independently — the architect never reads it, and it never sees the solution.
 
 **Iterate — the conversation is the orchestrator's; every rewrite is a subagent's.**
@@ -268,19 +271,26 @@ back to the full roster and limits and record that in `_progress.md`.
 For each iteration `N`:
 1. Set `state.phase="inner-loop"` and `state.iteration=N`; create `.devforge/iter-N/`.
 2. Before the first source edit, run `git status --porcelain` (ignore `.devforge/` entries); stop
-   if pre-existing unrelated changes are present. Then run the `implementer` stage: it applies
+   if pre-existing unrelated changes are present. On iteration 1, also run `oracle.commands` once
+   on the untouched tree and record its baseline metrics (test/file counts, pass/skip counts,
+   warnings, rough duration) in `iter-1/baseline.txt` — later green runs are judged against
+   these, not in isolation. Then run the `implementer` stage: it applies
    `2-design.md` + `3-success-criteria.md`, addresses every prior finding, and writes
    `iter-N/claim.md`.
 3. Run `oracle.commands`; if empty, record and run the smallest credible inferred fallback. Use
    finite, deterministic, non-mutating commands; avoid `dev`, `start`, `watch`, `lint:fix`,
    `format`, `clean`, inspectors, and eval workflows. If no credible command exists, the oracle
-   is not green.
+   is not green. Green alone is not green: compare the run against `iter-1/baseline.txt` — an
+   unexplained metric delta (test or file count, skips, new warnings, order-of-magnitude duration
+   shift) fails the oracle even when everything passes, because a change can be wrong while
+   staying green (e.g. a config edit that silently double-runs the suite). Expected deltas
+   (e.g. tests the design adds) must be named in `claim.md`.
 4. Check `git status --porcelain` again (ignore `.devforge/`). If unrelated changes appeared,
    stop for human direction. Write `diff.patch` only for approved-run changes.
 5. Dispatch panel reviewers in parallel, each given the pasted content of `2-design.md`,
-   `3-success-criteria.md`, `diff.patch`, and `test-results.txt` — nothing else. They stay blind
-   to `claim.md` and peer reviews.
-6. Converge when the oracle is green, no `blocker` or `major` finding is open, and every
+   `3-success-criteria.md`, `diff.patch`, and `test-results.txt`, plus read access to the
+   repository. They stay blind to `claim.md` and peer reviews.
+6. Converge when the oracle is green and baseline-consistent, no `blocker` or `major` finding is open, and every
    `minor`/`nit` is fixed or recorded as skipped with a specific reason in `claim.md`. Otherwise
    iterate until `inner_iterations`; then stop and present a findings table
    (fixed / open / skipped), the oracle status, and the options: extend the limit, accept with
@@ -344,8 +354,10 @@ with `state.phase="inner-loop"` and run the normal loop from step 5.
 - Triage has no gate; iterate the design with the human before the gate — chat is never the record.
 - Verify runs on every run; the claim ledger is never empty.
 - Blindness: architect never reads the success criteria; the criteria author never sees the
-  solution; reviewers and fulfillment get pasted content only — never file access, never
-  `claim.md`, never peer reviews.
+  solution; reviewers never see `claim.md` or peer reviews, and fulfillment never sees reviews
+  (`claim.md` it may read — it needs the skip reasons). `.devforge/` judgment files are pasted,
+  never granted. The repository itself is never blinded — ground truth stays readable to every
+  role.
 - Never commit `.devforge/` files. It's repo-gitignored; the run's own `.devforge/.gitignore`
   exceptions (`config.json`, `registry.json`) are local-only, not an invitation to `git add -f`
   or commit them.
@@ -353,7 +365,8 @@ with `state.phase="inner-loop"` and run the normal loop from step 5.
 - Surface human-facing artifacts into the human's channel; on-disk files and slash-commands are
   never the only door.
 - The panel, not the roster, drives the run; never run a `use` not in config.
-- Trust the oracle, not model self-reports. Never weaken/delete tests.
+- Trust the oracle, not model self-reports — and trust baselines, not bare green: an unexplained
+  oracle-metric delta is a failure. Never weaken/delete tests.
 - Converge on severity: no open `blocker`/`major`; every `minor`/`nit` fixed or skipped with a
   specific reason, and every skip shown at the create-PR confirm.
 - A finding fixable only by changing the approved `2-design.md` / `3-success-criteria.md` is the
