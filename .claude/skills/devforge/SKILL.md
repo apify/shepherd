@@ -110,6 +110,10 @@ Method line omitted. For stage key `K` with assignment `S`:
 > `.devforge/` files. **Read:** {role.reads}. **Do NOT read:** {role.blind}. **Method:** follow
 > `{engine}` — scoped as: {scope}. **Write:** `{role.writes}` in this format: {role.format}.
 
+If the dispatched agent has no write access, it returns the artifact verbatim as its final
+message and the orchestrator persists it to `{role.writes}` **unchanged** — a mechanical relay,
+not authorship; the no-judgment-files rule is not violated. Note the relay in `_progress.md`.
+
 | role | reads | do NOT read | writes | format |
 |------|-------|-------------|--------|--------|
 | `verify` | `_user_request.md`, `1-triage.md`, codebase, referenced issue; **for a review-only run also the PR/branch description and its diff — treat that description as the claim source** | `2-design.md`, `3-success-criteria.md` | `_request_fact_check.md` | claim ledger: every request claim tagged `VALID \| STALE \| LIKELY-FIXED \| UNVERIFIABLE` with evidence, plus a one-line verdict — never empty |
