@@ -57,13 +57,20 @@ reliably type a slash-command. Surface everything they need into the conversatio
 
 ## Setup / resume
 
-1. `mkdir -p .devforge`. If `.devforge/.gitignore` is missing, write it: ignore `*` except
+1. Resolve the absolute path of the target repo's `.devforge/` once at setup and use it for
+   every subsequent read/write — never a relative path; in long sessions the working directory
+   drifts, and a relative `_state.json` write can silently land in the wrong directory.
+   `mkdir -p` it. If `.devforge/.gitignore` is missing, write it: ignore `*` except
    `.gitignore`, `config.json`, `registry.json`.
 2. Fresh run: require a non-empty `<task>`. Write it verbatim to `.devforge/_user_request.md`.
    Initialize `_state.json`: `{"phase":"triage","iteration":0,"head_sha":"<git rev-parse HEAD>"}`.
 3. If `.devforge/_state.json` exists, resume. If a new non-empty `<task>` differs from
-   `_user_request.md`, ask continue vs fresh; on fresh, move the old run into
-   `.devforge/archive/<timestamp>/` first.
+   `_user_request.md`, ask continue vs fresh; on fresh — or when the previous run is
+   `phase=done` — move the old run's files (all numbered/underscore files and `iter-*/`, keeping
+   `config.json`, `config.local.json`, `registry.json`, `.gitignore`) into
+   `.devforge/archive/<timestamp>-<short-slug>/` first. Sequential runs in one session are
+   normal; each gets a clean directory. When batch tasks branch off the same base, note in each
+   run's PR body which sibling PRs touch the same files (merge-conflict forecast).
 4. Load config before dispatching any stage:
    - Copy this skill's `config.default.json` to `.devforge/config.json` if absent.
    - Shallow-merge `.devforge/config.local.json` over it if present.
@@ -231,7 +238,9 @@ Do not edit source files until `.devforge/_design.approved` exists. Set
 
 Propose the per-run review panel from the configured roster: start from the triage tier, adjust
 for the actual design scope, and pick from the roster in config order unless the design's risk
-calls for a specific reviewer. **Resolve every `"auto"` model to a concrete name** (see Model
+calls for a specific reviewer. With two or more reviewers, they must differ in lens (e.g.
+diff-correctness vs adversarial vs live-probe vs contract/consumer) — a second same-lens
+reviewer re-finds the first one's findings and adds cost, not signal. **Resolve every `"auto"` model to a concrete name** (see Model
 tiering) at the settled tier — inline on each reviewer, and in a `models` map for the single
 stages (only those whose config model is `"auto"`; an explicit model keeps its name). Write
 `.devforge/_panel.json`:
@@ -359,6 +368,9 @@ with `state.phase="inner-loop"` and run the normal loop from step 5.
 - The orchestrator routes; it never writes a judgment file. Human feedback goes verbatim into
   `_design_feedback.md`; subagents rewrite `2-design.md` / `3-success-criteria.md` /
   `_request_fact_check.md` — never the orchestrator.
+- The orchestrator may directly apply a reviewer's `nit`-level finding only when it is a
+  mechanical one-line edit with no logic (naming, typo, comment wording); anything more goes
+  back through the implementer. The fix still counts as "fixed" in the findings ledger.
 - Never self-approve a gate. Write `_design.approved` / `_create_pr.approved` only on an explicit
   human approval for that gate — a human accepting the plan dialog, a clear chat "yes", or the
   approval skill. A rejected/edited plan, a plan-tool error or closed stream, or a "continue from
