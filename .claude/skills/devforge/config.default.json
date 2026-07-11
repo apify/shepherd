@@ -4,8 +4,7 @@
       { "use": "staff-review",  "model": "auto" }
     ],
     "final_reviewers": [
-      { "use": "thermonuclear", "model": "auto" },
-      { "use": "code-review",   "model": "auto" }
+      { "use": "thermonuclear", "model": "auto" }
     ]
   },
   "oracle": {

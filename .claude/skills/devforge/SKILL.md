@@ -57,7 +57,10 @@ reliably type a slash-command. Surface everything they need into the conversatio
   plan-mode dialog for the design gate (when `plan_mode_gate=true`), plain chat for everything
   else. Interactive question widgets (e.g. `AskUserQuestion`) are for genuinely multiple-choice
   design questions only — never for a gate's approve/revise decision — and after a single stream
-  failure, re-ask in plain chat instead of retrying the widget.
+  failure, re-ask in plain chat instead of retrying the widget. A stream failure also demotes
+  that channel for the rest of the session: once a widget or plan-mode tool has failed once, use
+  plain chat for every later gate and question in the run — don't rediscover the same broken
+  channel at the next stop.
 
 ## Setup / resume
 
@@ -84,6 +87,9 @@ reliably type a slash-command. Surface everything they need into the conversatio
      `architect`, `implementer`, `success_criteria`, `fulfillment`) may be absent from config.
    - Record `oracle.commands`, limits, plan-mode setting, and the fully-resolved registry in
      `_progress.md`.
+   - As each dispatched stage completes, append one ledger line to `_progress.md`: stage ·
+     `use` · model · reported token count · duration. The run's cost lives with the run;
+     totals per stage should be readable with a grep, not reconstructed from chat.
 
 Valid `state.phase` values: `triage`, `verify`, `design`, `design-gate`, `inner-loop`,
 `final-review`, `review-run`, `create-pr`, `done`.
@@ -140,7 +146,8 @@ not authorship; the no-judgment-files rule is not violated. Note the relay in `_
 `"auto"` (the shipped default) lets the orchestrator pick a model per role and triage tier; an
 explicit name (`opus`, `sonnet`, `haiku`) is used verbatim. Resolve `"auto"` as: `implementer` →
 `haiku` (`sonnet` for `medium`/`large` — a subtle change is not transcription); `verify`,
-`explorer`, `success_criteria`, `reviewer` → `sonnet`; `architect` → `opus`; `final_reviewer` →
+`explorer`, `success_criteria`, `reviewer` → `sonnet`; `architect` → `opus` (`sonnet` for a
+revision pass — it folds feedback into an existing design without re-exploring); `final_reviewer` →
 `opus` (`sonnet` for `trivial`/`small`). `sonnet` is the floor for review — never `haiku`. Resolve
 every `"auto"` once at the design gate (step 4) so the human sees and can edit the picks; record
 them in `_panel.json` and dispatch from there.
@@ -263,7 +270,7 @@ stages (only those whose config model is `"auto"`; an explicit model keeps its n
   "reason": "localized low-risk change",
   "models": { "verify": "sonnet", "architect": "opus", "implementer": "haiku", "success_criteria": "sonnet", "fulfillment": "sonnet" },
   "reviewers": [{ "use": "staff-review", "model": "sonnet" }],
-  "final_reviewers": [{ "use": "code-review", "model": "sonnet" }],
+  "final_reviewers": [{ "use": "thermonuclear", "model": "sonnet" }],
   "inner_iterations": 2,
   "final_review_rounds": 1
 }
