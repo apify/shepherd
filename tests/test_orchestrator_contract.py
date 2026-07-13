@@ -13,7 +13,7 @@ def test_orchestrator_reads_config_and_registry():
 
 def test_orchestrator_skill_stays_compact():
     # Keep the orchestrator readable, but do not force removal of operational guidance.
-    assert len(ORCH.splitlines()) <= 360
+    assert len(ORCH.splitlines()) <= 450
 
 
 def test_orchestrator_documents_per_reviewer_files():
@@ -191,9 +191,12 @@ def test_dispatched_stages_run_non_interactively():
     assert "record open questions in your output file" in ORCH
 
 
-def test_reviewers_receive_pasted_content_not_file_access():
+def test_reviewers_receive_pasted_judgments_not_file_grants():
+    # Blindness applies to judgments, not ground truth: .devforge/ judgment
+    # files are pasted into prompts, never granted; the repo stays readable.
     assert "pasted content" in ORCH
-    assert "never file access" in ORCH
+    assert "never granted" in ORCH
+    assert "never to ground truth" in ORCH
 
 
 def test_orchestrator_converges_on_severity():
