@@ -25,7 +25,8 @@ context-routing state.
   reused by the architect and the implementer.
 - `.shepherd/_design_feedback.md`: the human's iteration answers, verbatim
   (orchestrator-written; triggers revision passes).
-- `.shepherd/_panel.json`: approved per-run reviewer subset and limits.
+- `.shepherd/_panel.json`: approved per-run reviewer subset, resolved per-stage models,
+  and limits.
 - `.shepherd/_state.json`: resume state, including `state.panel` after design approval.
 - `.shepherd/_progress.md`: resolved config, run notes, oracle status, and final links.
 - `.shepherd/iter-N/fulfillment.md`: criteria-vs-reality verdict before the create-PR
@@ -39,9 +40,10 @@ panel from that roster and writes it to `_panel.json`.
 The orchestrator routes; subagents judge; files are the only handoff. Each stage writes
 one file and each role reads only what it needs, so context stays scoped and judgments
 stay independent. The architect never reads `3-success-criteria.md`; the criteria author
-never sees the proposed solution; reviewers and the fulfillment checker judge pasted
-content (design, criteria, diff, test output) and never see `claim.md` or each other's
-findings. The orchestrator never writes a judgment file — human feedback lands verbatim
+never sees the proposed solution; reviewers judge pasted content (design, criteria, diff,
+test output) while reading the repository itself for ground truth, and never see
+`claim.md` or each other's findings; fulfillment reads `claim.md` for the skip reasons but
+not the reviews. The orchestrator never writes a judgment file — human feedback lands verbatim
 in `_design_feedback.md` and subagents fold it into their own files.
 
 Collapsing the files would either pollute role context or break that independence.
@@ -54,7 +56,7 @@ Collapsing the files would either pollute role context or break that independenc
 | `architect` | built-in (optional engine) | request, triage, fact check, `_codebase_map.md` if present, codebase; prior design + feedback on revision | `2-design.md` |
 | `success_criteria` | built-in (optional engine) | pasted product sections of `2-design.md`, request, triage | `3-success-criteria.md` |
 | `implementer` | built-in (optional engine) | design, criteria, fact check, map, prior reviews | source edits, `claim.md` |
-| `reviewers` | `staff-review` | pasted design, criteria, diff, test output | `review-<use>.md` |
+| `reviewers` | `staff-review` | pasted design, criteria, diff, test output, repository (working tree, git history) | `review-<use>.md` |
 | `final_reviewers` | `thermonuclear`, `code-review` | pasted design, criteria, diff, test output, working tree | `final-review-<use>.md` |
 | `fulfillment` | built-in (optional engine) | pasted criteria, diff, test output, `claim.md`, working tree | `iter-N/fulfillment.md` |
 

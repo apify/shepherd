@@ -26,7 +26,8 @@ Three properties matter most:
   quick confirmation of something you already shaped.
 - **Judgments are blind.** The architect never sees the success criteria; the criteria
   author never sees the proposed solution; reviewers get pasted design + criteria + diff
-  + tests — never the implementer's claims or each other's findings.
+  + tests plus read access to the repository itself — never the implementer's claims or
+  each other's findings. Blindness applies to judgments, never to ground truth.
 - **"Done" is checked, not claimed.** Before the create-PR confirm, a fulfillment
   subagent judges the diff and tests against the success criteria written before the
   solution existed — `MET | NOT MET` per criterion, with evidence.
@@ -88,7 +89,9 @@ recommends `DEFER` or `DECLINE`.
 
 At the design gate, shepherd writes `_panel.json` so each run gets the right reviewer
 set for its risk: a small bug can use a small panel, while a core or public-contract
-change can use the full roster. Approval covers the design, the success criteria, and
+change can use the full roster. The panel also pins the model for each stage — every
+`auto` is resolved to a concrete model by role and complexity tier and shown to you to
+bump up or down before approving. Approval covers the design, the success criteria, and
 the panel together.
 
 Convergence is severity-gated: no `blocker` or `major` finding may stay open, and every
@@ -181,12 +184,13 @@ Internal files:
 - `.shepherd/_codebase_map.md` (optional): explorer output for medium/large tasks.
 - `.shepherd/_design_feedback.md`: the human's iteration answers, verbatim
   (orchestrator-written; triggers architect/criteria revision passes).
-- `.shepherd/_panel.json`: approved reviewer panel and iteration limits.
+- `.shepherd/_panel.json`: approved reviewer panel, resolved per-stage models, and
+  iteration limits.
 - `.shepherd/_state.json`: resumable phase and iteration state.
 - `.shepherd/_progress.md`: run log and resolved configuration notes.
 - `.shepherd/_design.approved`, `.shepherd/_create_pr.approved`: human approval markers.
 - `.shepherd/iter-N/`: per-iteration `claim.md`, review files, `fulfillment.md`, diff,
-  and test output.
+  and test output (plus `baseline.txt` in `iter-1/`, the pre-change oracle metrics).
 
 ### Why one file per stage
 
@@ -194,8 +198,11 @@ The files are not bookkeeping; they are the context-routing mechanism. Each stag
 one file, and each role reads only what it needs. Chat is ephemeral — your feedback goes
 verbatim into `_design_feedback.md`, and subagents fold it into their files, so a run can
 resume from disk at any point. The architect never reads the success criteria; the
-criteria author never sees the solution; reviewers and the fulfillment checker receive
-pasted content, never file access, and stay blind to `claim.md` and to each other.
+criteria author never sees the solution; reviewers judge pasted judgment files (design,
+criteria, diff, tests) while reading the repository itself for ground truth, and stay
+blind to `claim.md` and to each other. Fulfillment reads `claim.md` for the skip reasons
+but never the reviews. Blindness applies to judgments, never to ground truth: only
+`.shepherd/` judgment files are gated — the repository stays readable to every role.
 
 That split is what makes multiple judgments produce independent signal. Collapsing the
 run into one shared context would either pollute each role or break that independence.
@@ -227,6 +234,12 @@ Single stages (`verify`, `architect`, `implementer`, `success_criteria`, `fulfil
 are optional: when absent, the built-in role table in the skill drives the stage with no
 engine. Assign an engine (`writing-plans`, `feature-dev`, `brainstorming`, or a repo
 `use` such as `dig`) only when you want its specific methodology.
+
+Each stage entry takes a `model`. `auto` (the default) lets shepherd pick per role and
+triage tier — `haiku`/`sonnet`/`opus`, scaling up for larger changes and down for smaller
+ones; a concrete name pins the stage. All `auto` picks are resolved and shown at the
+design gate, where you can adjust any before approving. A local
+`.shepherd/config.local.json` shallow-overrides `config.json` for one environment.
 
 Use finite, non-mutating oracle commands such as type checks, lint checks, builds, unit
 tests, and targeted integration tests. Avoid dev servers, watchers, fixers, cleanup
