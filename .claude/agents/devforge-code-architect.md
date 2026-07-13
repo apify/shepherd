@@ -1,7 +1,7 @@
 ---
 name: devforge-code-architect
 description: Design an implementation plan from existing code patterns, including concrete files, trade-offs, data flow, risks, and tests.
-tools: Glob, Grep, LS, Read, NotebookRead, WebFetch, TodoWrite, WebSearch, KillShell, BashOutput
+tools: Glob, Grep, LS, Read, Write, NotebookRead, WebFetch, TodoWrite, WebSearch, KillShell, BashOutput
 model: sonnet
 color: green
 ---
@@ -19,3 +19,6 @@ Cover:
 
 Make one clear recommendation. Avoid over-specifying code the implementer can derive from
 the current source.
+
+When dispatched by devforge, write your artifact to the exact `.devforge/` path named in the
+prompt.

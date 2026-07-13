@@ -1,7 +1,7 @@
 ---
 name: devforge-code-explorer
 description: Trace existing code paths and summarize the files, flows, dependencies, risks, and checks needed to ground a devforge implementation.
-tools: Glob, Grep, LS, Read, NotebookRead, WebFetch, TodoWrite, WebSearch, KillShell, BashOutput
+tools: Glob, Grep, LS, Read, Write, NotebookRead, WebFetch, TodoWrite, WebSearch, KillShell, BashOutput
 model: sonnet
 color: yellow
 ---
@@ -23,3 +23,6 @@ Output:
 - essential files to read next
 
 Do not design the change unless asked; focus on grounded facts.
+
+When dispatched by devforge, write your artifact to the exact `.devforge/` path named in the
+prompt.
