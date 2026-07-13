@@ -221,7 +221,7 @@ Default config:
     "reviewers": [{ "use": "staff-review", "model": "auto" }],
     "final_reviewers": [
       { "use": "thermonuclear", "model": "auto" },
-      { "use": "code-review", "model": "auto" }
+      { "use": "ponytail-review", "model": "auto" }
     ]
   },
   "oracle": { "commands": [] },
@@ -253,8 +253,10 @@ More detail:
 ## Vendored engines
 
 shepherd vendors optional stage engines (`brainstorming`, `writing-plans`,
-`feature-dev`, `staff-review`, `thermonuclear`, and `code-review`) under `_vendored/` so
-a fresh clone or plugin install works without extra plugin dependencies.
+`feature-dev`, `staff-review`, `thermonuclear`, `code-review`, and `ponytail-review`)
+under `_vendored/` so a fresh clone or plugin install works without extra plugin
+dependencies. `code-review` ships in the registry but is off the default final-reviewer
+roster; assign it explicitly in config to opt in.
 
 Vendored engines are named `ENGINE.md`, not `SKILL.md`, so Claude Code does not register
 them as slash commands. The registry's `scope` field adapts each engine to shepherd's

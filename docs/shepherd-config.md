@@ -57,7 +57,7 @@ Collapsing the files would either pollute role context or break that independenc
 | `success_criteria` | built-in (optional engine) | pasted product sections of `2-design.md`, request, triage | `3-success-criteria.md` |
 | `implementer` | built-in (optional engine) | design, criteria, fact check, map, prior reviews | source edits, `claim.md` |
 | `reviewers` | `staff-review` | pasted design, criteria, diff, test output, repository (working tree, git history) | `review-<use>.md` |
-| `final_reviewers` | `thermonuclear`, `code-review` | pasted design, criteria, diff, test output, working tree | `final-review-<use>.md` |
+| `final_reviewers` | `thermonuclear`, `ponytail-review` | pasted design, criteria, diff, test output, working tree | `final-review-<use>.md` |
 | `fulfillment` | built-in (optional engine) | pasted criteria, diff, test output, `claim.md`, working tree | `iter-N/fulfillment.md` |
 
 Single stages are optional in config: when absent, the built-in role table in the skill
@@ -92,7 +92,7 @@ Core/shared or public-contract changes are `medium` at minimum regardless of lin
     "reviewers": [{ "use": "staff-review", "model": "auto" }],
     "final_reviewers": [
       { "use": "thermonuclear", "model": "auto" },
-      { "use": "code-review", "model": "auto" }
+      { "use": "ponytail-review", "model": "auto" }
     ]
   },
   "oracle": { "commands": [] },

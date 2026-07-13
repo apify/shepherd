@@ -15,6 +15,8 @@ go into the output file, never to the human).
 Most vendored skills are named `ENGINE.md` instead of `SKILL.md` so Claude Code does not
 auto-register them as slash commands. `feature-dev.md` and `code-review.md` keep their
 upstream filenames because their directories are already nested under `_vendored/`.
+`ponytail-review/SKILL.md` also keeps its upstream filename — it is meant to double as a
+standalone `/ponytail-review` command outside shepherd.
 
 | `use` | Path | Upstream | Shepherd adaptation |
 |---|---|---|---|
@@ -23,7 +25,8 @@ upstream filenames because their directories are already nested under `_vendored
 | `feature-dev` | `_vendored/feature-dev/feature-dev.md` | claude-plugins-official | optional implementer engine: implements against approved shepherd files |
 | `staff-review` | `_vendored/staff-review/ENGINE.md` | apify/agent-skills-internal 1.1.1 | reviews the pasted diff, blind to `claim.md` |
 | `thermonuclear` | `_vendored/thermonuclear/ENGINE.md` | local personal skill | runs a strict maintainability review on the pasted diff |
-| `code-review` | `_vendored/code-review/code-review.md` | claude-plugins-official | reviews the shepherd diff/working tree instead of a PR diff |
+| `code-review` | `_vendored/code-review/code-review.md` | claude-plugins-official | reviews the shepherd diff/working tree instead of a PR diff; registry-only, off the default roster |
+| `ponytail-review` | `_vendored/ponytail-review/SKILL.md` | local personal skill | final reviewer: line-level deletion/leanness lens, design-aware, clarity-guarded |
 
 Support files from `feature-dev` are also vendored. Two agents are re-registered as
 project agents with shepherd-specific `name:` fields:
