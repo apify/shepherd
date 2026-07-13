@@ -175,6 +175,12 @@ Complexity rubric:
 Blast-radius override: core/shared code or public API/response-contract changes are at least
 `medium`, even if tiny.
 
+**No fast path.** devforge earns its cost on complex work; the tiers scale the review panel,
+never the pipeline. A `trivial` run keeps the full stage sequence — verify, design, criteria,
+both gates, review, fulfillment. If a task looks too trivial to justify that ceremony, note it
+in the triage overview (the human may prefer to just make the change directly, outside
+devforge) — but never skip stages to accommodate it.
+
 **Triage has no gate.** Present the overview in chat and continue. Only when the decision is
 `DEFER or DECLINE`, stop and recommend against proceeding, but let the human decide. Persist
 `state.review_only=true|false` from the "Review-only:" line, then set `state.phase="verify"`.
