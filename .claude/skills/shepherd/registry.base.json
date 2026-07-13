@@ -27,7 +27,7 @@
     "staff-review": {
       "roles": ["reviewer", "final_reviewer"],
       "engine": "../_vendored/staff-review/ENGINE.md",
-      "scope": "apply to the pasted diff; focus on correctness, edge cases, and test coverage; skip its argument parsing and gh/PR flows"
+      "scope": "apply to the pasted diff; focus on correctness, edge cases, test coverage, and adherence to the repo's stated conventions (CLAUDE.md / CONTRIBUTING and their AGENTS.md children); skip its argument parsing and gh/PR flows"
     },
     "thermonuclear": {
       "roles": ["reviewer", "final_reviewer"],
@@ -38,6 +38,11 @@
       "roles": ["reviewer", "final_reviewer"],
       "engine": "../_vendored/code-review/code-review.md",
       "scope": "keep the confidence-score method (single-context if subagents are unavailable), but review the pasted diff plus the working tree instead of `gh pr diff`; skip PR eligibility checks and PR comments; report only findings with score >= 80"
+    },
+    "ponytail-review": {
+      "roles": ["reviewer", "final_reviewer"],
+      "engine": "../_vendored/ponytail-review/SKILL.md",
+      "scope": "apply to the pasted diff; complexity/deletion lens only — correctness stays with the other reviewers. Judge every cut against the pasted 2-design.md: a cut that contradicts an approved decision or a stated behavior-preservation constraint is a human-call finding, not a recommendation. First line VERDICT: PASS|FAIL, then its one-line findings mapped to severities (delete/yagni → minor, shrink/doc-style → nit), keeping its net-lines metric at the end. Clarity outranks the line count: never propose nested ternaries, dense one-liners, or concern-merging as cuts — a cut that makes the code harder to read is not a finding"
     }
   }
 }
