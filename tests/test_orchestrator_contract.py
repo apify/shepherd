@@ -1,8 +1,8 @@
 from conftest import REPO_ROOT
 
-ORCH = (REPO_ROOT / ".claude/skills/devforge/SKILL.md").read_text()
+ORCH = (REPO_ROOT / ".claude/skills/shepherd/SKILL.md").read_text()
 APPROVE_DESIGN = (
-    REPO_ROOT / ".claude/skills/devforge-approve-design/SKILL.md"
+    REPO_ROOT / ".claude/skills/shepherd-approve-design/SKILL.md"
 ).read_text()
 
 
@@ -116,7 +116,7 @@ def test_design_iteration_uses_feedback_file_and_revision_passes():
 
 def test_explorer_writes_a_reused_codebase_map():
     assert "_codebase_map.md" in ORCH
-    assert "devforge-code-explorer" in ORCH
+    assert "shepherd-code-explorer" in ORCH
 
 
 def test_orchestrator_selects_review_panel_at_design_gate():
@@ -167,11 +167,11 @@ def test_orchestrator_checks_approved_commit_on_resume():
 
 
 def test_orchestrator_archives_previous_run_on_fresh_start():
-    assert ".devforge/archive/" in ORCH
+    assert ".shepherd/archive/" in ORCH
 
 
 def test_setup_writes_run_gitignore():
-    assert ".devforge/.gitignore" in ORCH
+    assert ".shepherd/.gitignore" in ORCH
 
 
 def test_orchestrator_has_complexity_rubric_with_numbers():
@@ -192,7 +192,7 @@ def test_dispatched_stages_run_non_interactively():
 
 
 def test_reviewers_receive_pasted_judgments_not_file_grants():
-    # Blindness applies to judgments, not ground truth: .devforge/ judgment
+    # Blindness applies to judgments, not ground truth: .shepherd/ judgment
     # files are pasted into prompts, never granted; the repo stays readable.
     assert "pasted content" in ORCH
     assert "never granted" in ORCH
@@ -255,17 +255,17 @@ def test_orchestrator_uses_universal_dispatch_not_wrapper_skills():
 
 def test_no_wrapper_skill_dirs_remain():
     skills = REPO_ROOT / ".claude/skills"
-    leftover = [p.name for p in skills.glob("devforge-review-*")]
-    leftover += [p.name for p in skills.glob("devforge-impl-*")]
-    leftover += [p.name for p in skills.glob("devforge-validate-*")]
-    leftover += [p.name for p in skills.glob("devforge-architect-*")]
+    leftover = [p.name for p in skills.glob("shepherd-review-*")]
+    leftover += [p.name for p in skills.glob("shepherd-impl-*")]
+    leftover += [p.name for p in skills.glob("shepherd-validate-*")]
+    leftover += [p.name for p in skills.glob("shepherd-architect-*")]
     assert leftover == [], f"wrapper skill dirs should be gone: {leftover}"
 
 
 def test_orchestrator_resolves_base_plus_repo_registry():
     assert "registry.base.json" in ORCH
     assert "fully-resolved registry" in ORCH
-    assert ".devforge/registry.json" in ORCH
+    assert ".shepherd/registry.json" in ORCH
 
 
 def test_orchestrator_documents_oracle_commands():
@@ -278,8 +278,8 @@ def test_orchestrator_documents_oracle_commands():
 def test_orchestrator_documents_dirty_worktree_protection():
     assert "git status --porcelain" in ORCH
     assert "pre-existing unrelated changes" in ORCH
-    # The run's own .devforge files must not trip the check.
-    assert "ignore `.devforge/`" in ORCH
+    # The run's own .shepherd files must not trip the check.
+    assert "ignore `.shepherd/`" in ORCH
 
 
 def test_orchestrator_finish_writes_plain_commit_and_pr():

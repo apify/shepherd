@@ -1,34 +1,34 @@
-# devforge config
+# shepherd config
 
-devforge configuration chooses the engine behind each stage, the model used for that
+shepherd configuration chooses the engine behind each stage, the model used for that
 stage, the deterministic oracle commands, and the iteration limits for review loops.
 
-The active config is `.devforge/config.json`. If it is missing, devforge copies the
-default from `.claude/skills/devforge/config.default.json`. A local
-`.devforge/config.local.json` may override values for one environment.
+The active config is `.shepherd/config.json`. If it is missing, shepherd copies the
+default from `.claude/skills/shepherd/config.default.json`. A local
+`.shepherd/config.local.json` may override values for one environment.
 
 ## Runtime files
 
 Numbered files are intended for humans; the underscore-prefixed files are internal
 context-routing state.
 
-- `.devforge/1-triage.md`: cheap product decision, complexity, approach sketch
+- `.shepherd/1-triage.md`: cheap product decision, complexity, approach sketch
   (orchestrator-written).
-- `.devforge/2-design.md`: product-first design with open questions (architect
+- `.shepherd/2-design.md`: product-first design with open questions (architect
   subagent; revised via feedback-file revision passes).
-- `.devforge/3-success-criteria.md`: testable "done", written blind to the solution
+- `.shepherd/3-success-criteria.md`: testable "done", written blind to the solution
   (success-criteria subagent).
-- `.devforge/_user_request.md`: raw task, written before triage.
-- `.devforge/_request_fact_check.md`: authoritative claim ledger (verify subagent,
+- `.shepherd/_user_request.md`: raw task, written before triage.
+- `.shepherd/_request_fact_check.md`: authoritative claim ledger (verify subagent,
   always runs).
-- `.devforge/_codebase_map.md` (optional): explorer output for medium/large tasks,
+- `.shepherd/_codebase_map.md` (optional): explorer output for medium/large tasks,
   reused by the architect and the implementer.
-- `.devforge/_design_feedback.md`: the human's iteration answers, verbatim
+- `.shepherd/_design_feedback.md`: the human's iteration answers, verbatim
   (orchestrator-written; triggers revision passes).
-- `.devforge/_panel.json`: approved per-run reviewer subset and limits.
-- `.devforge/_state.json`: resume state, including `state.panel` after design approval.
-- `.devforge/_progress.md`: resolved config, run notes, oracle status, and final links.
-- `.devforge/iter-N/fulfillment.md`: criteria-vs-reality verdict before the create-PR
+- `.shepherd/_panel.json`: approved per-run reviewer subset and limits.
+- `.shepherd/_state.json`: resume state, including `state.panel` after design approval.
+- `.shepherd/_progress.md`: resolved config, run notes, oracle status, and final links.
+- `.shepherd/iter-N/fulfillment.md`: criteria-vs-reality verdict before the create-PR
   confirm (fulfillment subagent).
 
 The configured reviewer lists are a roster. The design gate selects the run-specific
@@ -101,7 +101,7 @@ Core/shared or public-contract changes are `medium` at minimum regardless of lin
 
 ## Model selection
 
-Each stage entry takes a `model`. `"auto"` (the default) lets devforge pick per role and triage
+Each stage entry takes a `model`. `"auto"` (the default) lets shepherd pick per role and triage
 tier — `haiku` for a small transcription-style implementer, `sonnet` for verify/criteria/reviewers,
 `opus` for the architect and final reviewers — scaling up for `medium`/`large` and down for
 `trivial`/`small`. A concrete name (`opus`, `sonnet`, `haiku`) pins the stage and overrides auto.
@@ -125,8 +125,8 @@ inspectors, and eval workflows.
 
 ## Registry overrides
 
-The shipped registry is `.claude/skills/devforge/registry.base.json`. A repo may add
-`.devforge/registry.json` with extra `uses`; repo `uses` shallow-override base uses.
+The shipped registry is `.claude/skills/shepherd/registry.base.json`. A repo may add
+`.shepherd/registry.json` with extra `uses`; repo `uses` shallow-override base uses.
 Base engine paths resolve relative to the skill. Repo engine paths resolve relative to
 the repo.
 
@@ -149,11 +149,11 @@ Example:
 }
 ```
 
-Then reference those `use` names in `.devforge/config.json`.
+Then reference those `use` names in `.shepherd/config.json`.
 
 ## Validation
 
-On each run devforge validates:
+On each run shepherd validates:
 
 - `reviewers` and `final_reviewers` are present
 - every configured `use` exists (single stages — `verify`, `architect`, `implementer`,

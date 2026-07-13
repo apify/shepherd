@@ -1,6 +1,6 @@
 ---
-name: devforge-approve-design
-description: HUMAN-ONLY devforge design approval. Run after reviewing .devforge/2-design.md and .devforge/_panel.json. Records the approved panel in _state.json, writes .devforge/_design.approved, and hands control back to /devforge. The agent cannot invoke this.
+name: shepherd-approve-design
+description: HUMAN-ONLY shepherd design approval. Run after reviewing .shepherd/2-design.md and .shepherd/_panel.json. Records the approved panel in _state.json, writes .shepherd/_design.approved, and hands control back to /shepherd. The agent cannot invoke this.
 disable-model-invocation: true
 allowed-tools: Read, Bash, Skill
 argument-hint: ""
@@ -10,7 +10,7 @@ argument-hint: ""
 
 Record human approval of the design and review panel so implementation can begin.
 
-1. Read `.devforge/2-design.md`, `.devforge/3-success-criteria.md`, and `.devforge/_panel.json`;
+1. Read `.shepherd/2-design.md`, `.shepherd/3-success-criteria.md`, and `.shepherd/_panel.json`;
    stop if any is missing. Approval covers all three.
 2. Summarize the approach, success criteria, reviewers, final reviewers, limits, and panel
    reason in 3-5 lines.
@@ -20,13 +20,13 @@ Record human approval of the design and review panel so implementation can begin
    import json
    import re
    from pathlib import Path
-   state_path = Path(".devforge/_state.json")
-   panel = json.loads(Path(".devforge/_panel.json").read_text())
+   state_path = Path(".shepherd/_state.json")
+   panel = json.loads(Path(".shepherd/_panel.json").read_text())
    for key in ("reviewers", "final_reviewers", "inner_iterations", "final_review_rounds"):
        if key not in panel:
            raise SystemExit(f"_panel.json missing required key: {key}")
    state = json.loads(state_path.read_text()) if state_path.exists() else {}
-   triage = Path(".devforge/1-triage.md")
+   triage = Path(".shepherd/1-triage.md")
    triage_text = triage.read_text().lower() if triage.exists() else ""
    state_review_only = state.get("review_only")
    review_only = (
@@ -46,11 +46,11 @@ Record human approval of the design and review panel so implementation can begin
    ```
 4. Write the marker:
    ```bash
-   mkdir -p .devforge
-   printf 'approved_at=%s\napproved_commit=%s\nnote=design approved by human via /devforge-approve-design\n' \
+   mkdir -p .shepherd
+   printf 'approved_at=%s\napproved_commit=%s\nnote=design approved by human via /shepherd-approve-design\n' \
      "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$(git rev-parse HEAD 2>/dev/null || echo none)" \
-     > .devforge/_design.approved
+     > .shepherd/_design.approved
    ```
-5. Confirm briefly, then invoke `/devforge` so it resumes into review mode or implementation.
+5. Confirm briefly, then invoke `/shepherd` so it resumes into review mode or implementation.
 
 Do not edit source here.

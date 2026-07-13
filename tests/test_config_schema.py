@@ -5,8 +5,8 @@ import jsonschema
 import pytest
 from conftest import REPO_ROOT, load_json
 
-SCHEMA = load_json(REPO_ROOT / ".claude/skills/devforge/config.schema.json")
-CONFIG = REPO_ROOT / ".claude/skills/devforge/config.default.json"
+SCHEMA = load_json(REPO_ROOT / ".claude/skills/shepherd/config.schema.json")
+CONFIG = REPO_ROOT / ".claude/skills/shepherd/config.default.json"
 
 
 def test_default_config_matches_schema():
@@ -72,8 +72,8 @@ def test_catalog_examples_are_valid():
     sys.path.insert(0, str(REPO_ROOT / "scripts"))
     from validate_config import validate
 
-    registry = load_json(REPO_ROOT / ".claude/skills/devforge/registry.base.json")
-    catalog = REPO_ROOT / "docs/devforge-config.md"
+    registry = load_json(REPO_ROOT / ".claude/skills/shepherd/registry.base.json")
+    catalog = REPO_ROOT / "docs/shepherd-config.md"
     if not catalog.is_file():
         pytest.skip("catalog not written yet")
     md = catalog.read_text()

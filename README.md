@@ -1,13 +1,13 @@
-# devforge
+# shepherd
 
-devforge is a Claude Code plugin for running coding work through a controlled,
-human-gated loop. `/devforge <task>` separates product triage, request verification,
+shepherd is a Claude Code plugin for running coding work through a controlled,
+human-gated loop. `/shepherd <task>` separates product triage, request verification,
 design, success criteria, implementation, review, tests, fulfillment, and create-PR
-approval into durable files under `.devforge/`.
+approval into durable files under `.shepherd/`.
 
 <p align="center">
-  <img src="docs/assets/devforge-overview.svg" width="920"
-       alt="devforge overview — the orchestrator routes, subagents judge, and files are the only handoff; the run flows from /devforge <task> through triage, verify, design, and human iteration to the design gate, then an implement/review loop, final reviewers, and a fulfillment check, ending at a create-PR confirm before commit.">
+  <img src="docs/assets/shepherd-overview.svg" width="920"
+       alt="shepherd overview — the orchestrator routes, subagents judge, and files are the only handoff; the run flows from /shepherd <task> through triage, verify, design, and human iteration to the design gate, then an implement/review loop, final reviewers, and a fulfillment check, ending at a create-PR confirm before commit.">
 </p>
 
 The core principle: **the orchestrator routes; subagents judge; files are the only
@@ -19,7 +19,7 @@ and records your feedback verbatim.
 Three properties matter most:
 
 - **The design is shaped with you.** After a cheap triage and an always-on fact check,
-  subagents draft a product-first design and independent success criteria. devforge then
+  subagents draft a product-first design and independent success criteria. shepherd then
   iterates with you in chat — one question at a time, each with a recommended answer,
   product questions first. Your answers go verbatim into a feedback file and the
   architect revises its own draft in a cheap revision pass. The design gate becomes a
@@ -41,7 +41,7 @@ reference, and the collapsible holds a Mermaid version for editing.
 
 ```mermaid
 flowchart TD
-    Start["/devforge <task>"] --> Triage["Triage (orchestrator)<br/>PROCEED / DEFER / DECLINE"]
+    Start["/shepherd <task>"] --> Triage["Triage (orchestrator)<br/>PROCEED / DEFER / DECLINE"]
     Triage -->|PROCEED| Verify["Verify (subagent, always)<br/>claim ledger"]
     Triage -->|DEFER or DECLINE| Stop["Stop with recommendation"]
     Verify -->|claims hold| Draft["Architect drafts 2-design.md<br/>then success criteria (blind)"]
@@ -70,7 +70,7 @@ flowchart TD
 </details>
 
 ```text
-/devforge <task>
+/shepherd <task>
   triage (orchestrator product screen; no gate, stops only on DEFER/DECLINE)
   verify (subagent, always)      -> claim ledger; stops if the request is stale
   architect + success criteria   -> blind drafts
@@ -86,7 +86,7 @@ There are two human gates: the **design gate** before source edits and the **cre
 confirm** before any git write. Triage is deliberately cheap and continues unless it
 recommends `DEFER` or `DECLINE`.
 
-At the design gate, devforge writes `_panel.json` so each run gets the right reviewer
+At the design gate, shepherd writes `_panel.json` so each run gets the right reviewer
 set for its risk: a small bug can use a small panel, while a core or public-contract
 change can use the full roster. Approval covers the design, the success criteria, and
 the panel together.
@@ -96,66 +96,66 @@ Convergence is severity-gated: no `blocker` or `major` finding may stay open, an
 you at the create-PR confirm. No PR happens without fulfillment: every criterion `MET`,
 or you explicitly accept the recorded exception.
 
-On web/mobile/remote sessions the human sees only the chat stream, so devforge surfaces
+On web/mobile/remote sessions the human sees only the chat stream, so shepherd surfaces
 everything into the conversation: the full `2-design.md` and `3-success-criteria.md` are
 pasted or rendered as an Artifact (not just linked on disk), and run progress shows as a
-one-line status at each phase transition — never assume the human can open `.devforge/`
+one-line status at each phase transition — never assume the human can open `.shepherd/`
 files or type a slash-command.
 
-Review-only work is first-class. For a task like "review PR/branch X", devforge runs
+Review-only work is first-class. For a task like "review PR/branch X", shepherd runs
 triage, verify, design (the review scope), the approved review panel against the
 existing diff, and a findings summary. It only enters the implementation loop if you ask
 it to fix those findings.
 
 ## Commands
 
-- `/devforge <task>` starts a new run.
-- `/devforge` resumes the run recorded in `.devforge/_state.json`.
-- `/devforge-approve-design` is the human-only command for approving
-  `.devforge/2-design.md`, `.devforge/3-success-criteria.md`, and `.devforge/_panel.json`
+- `/shepherd <task>` starts a new run.
+- `/shepherd` resumes the run recorded in `.shepherd/_state.json`.
+- `/shepherd-approve-design` is the human-only command for approving
+  `.shepherd/2-design.md`, `.shepherd/3-success-criteria.md`, and `.shepherd/_panel.json`
   (records the panel and writes the marker).
-- `/devforge-approve-create-pr` is the human-only fallback for recording approval
+- `/shepherd-approve-create-pr` is the human-only fallback for recording approval
   before commit, push, and PR creation.
 
-The design gate is generic and portable: devforge presents the design, criteria, and
+The design gate is generic and portable: shepherd presents the design, criteria, and
 panel and waits for one of two human-driven outcomes. **Approve** — a chat "yes" or
-`/devforge-approve-design` — writes `_design.approved` and proceeds. **Revise** — any
+`/shepherd-approve-design` — writes `_design.approved` and proceeds. **Revise** — any
 change request — goes back to the design iteration (feedback file + revision passes) and
 re-presents, iterating until you approve. For any agent that has a plan mode (Claude
 Code, Cursor, Codex, …), `plan_mode_gate: true` (the default) presents this through plan
 mode as an adapter: accepting the plan is Approve, rejecting or editing it is Revise; if
 the plan tool errors or is unavailable (remote, headless, web sessions) it falls back to
 the chat gate. The agent never self-approves — a plan-tool error or a "continue" message
-is never approval. Creating the PR uses a chat yes/no or `/devforge-approve-create-pr`.
+is never approval. Creating the PR uses a chat yes/no or `/shepherd-approve-create-pr`.
 The on-disk `_design.approved` / `_create_pr.approved` markers are the only approval
 signals.
 
 ## Install
 
 ```text
-/plugin marketplace add jirispilka/devforge
-/plugin install devforge@devforge
+/plugin marketplace add apify/shepherd
+/plugin install shepherd@shepherd
 ```
 
 For local development, load the plugin directory directly:
 
 ```bash
-claude --plugin-dir /path/to/devforge/.claude
+claude --plugin-dir /path/to/shepherd/.claude
 ```
 
 On claude.ai/code, attach this repo. In another repo, copy `.claude/skills/` or install
-the plugin. Use the commands without a `devforge:` prefix.
+the plugin. Use the commands without a `shepherd:` prefix.
 
 ### Prompt reads during a run
 
-During a run, devforge may read engine files under `.claude/skills/_vendored/` as
+During a run, shepherd may read engine files under `.claude/skills/_vendored/` as
 instruction text. These read-only prompts are expected.
 
 If you copied `.claude/skills/` into your repo or attached this repo, allowlist the
 prompt reads in `.claude/settings.json`:
 
 ```json
-{ "permissions": { "allow": ["Read(.claude/skills/_vendored/**)", "Read(.claude/skills/devforge/**)"] } }
+{ "permissions": { "allow": ["Read(.claude/skills/_vendored/**)", "Read(.claude/skills/shepherd/**)"] } }
 ```
 
 When installed as a plugin, the files live under the plugin path, so that glob will not
@@ -163,29 +163,29 @@ match. Approve the prompts once in that environment.
 
 ## Files
 
-Run data lives in `.devforge/`; plugin tooling lives in `.claude/skills/`. Each run
-writes a `.devforge/.gitignore` that keeps only `config.json` and `registry.json`
+Run data lives in `.shepherd/`; plugin tooling lives in `.claude/skills/`. Each run
+writes a `.shepherd/.gitignore` that keeps only `config.json` and `registry.json`
 committed; run evidence is summarized in the PR body instead.
 
 Human-facing files:
 
-- `.devforge/1-triage.md`: product decision, complexity, approach sketch (orchestrator).
-- `.devforge/2-design.md`: product-first design with open questions (architect subagent).
-- `.devforge/3-success-criteria.md`: testable "done", written blind to the solution
+- `.shepherd/1-triage.md`: product decision, complexity, approach sketch (orchestrator).
+- `.shepherd/2-design.md`: product-first design with open questions (architect subagent).
+- `.shepherd/3-success-criteria.md`: testable "done", written blind to the solution
   (success-criteria subagent).
 
 Internal files:
 
-- `.devforge/_user_request.md`: raw task text.
-- `.devforge/_request_fact_check.md`: authoritative claim ledger (verify subagent).
-- `.devforge/_codebase_map.md` (optional): explorer output for medium/large tasks.
-- `.devforge/_design_feedback.md`: the human's iteration answers, verbatim
+- `.shepherd/_user_request.md`: raw task text.
+- `.shepherd/_request_fact_check.md`: authoritative claim ledger (verify subagent).
+- `.shepherd/_codebase_map.md` (optional): explorer output for medium/large tasks.
+- `.shepherd/_design_feedback.md`: the human's iteration answers, verbatim
   (orchestrator-written; triggers architect/criteria revision passes).
-- `.devforge/_panel.json`: approved reviewer panel and iteration limits.
-- `.devforge/_state.json`: resumable phase and iteration state.
-- `.devforge/_progress.md`: run log and resolved configuration notes.
-- `.devforge/_design.approved`, `.devforge/_create_pr.approved`: human approval markers.
-- `.devforge/iter-N/`: per-iteration `claim.md`, review files, `fulfillment.md`, diff,
+- `.shepherd/_panel.json`: approved reviewer panel and iteration limits.
+- `.shepherd/_state.json`: resumable phase and iteration state.
+- `.shepherd/_progress.md`: run log and resolved configuration notes.
+- `.shepherd/_design.approved`, `.shepherd/_create_pr.approved`: human approval markers.
+- `.shepherd/iter-N/`: per-iteration `claim.md`, review files, `fulfillment.md`, diff,
   and test output.
 
 ### Why one file per stage
@@ -202,8 +202,8 @@ run into one shared context would either pollute each role or break that indepen
 
 ## Configuration
 
-Stages are configured in `.devforge/config.json`; defaults ship beside the skill in
-`.claude/skills/devforge/config.default.json`. The base registry maps each `use` name to
+Stages are configured in `.shepherd/config.json`; defaults ship beside the skill in
+`.claude/skills/shepherd/config.default.json`. The base registry maps each `use` name to
 a vendored engine under `.claude/skills/_vendored/`.
 
 Default config:
@@ -234,16 +234,16 @@ commands, inspectors, and eval workflows.
 
 More detail:
 
-- Config reference: [docs/devforge-config.md](docs/devforge-config.md)
+- Config reference: [docs/shepherd-config.md](docs/shepherd-config.md)
 - Vendored engine provenance: [VENDORED.md](VENDORED.md)
 
 ## Vendored engines
 
-devforge vendors optional stage engines (`brainstorming`, `writing-plans`,
+shepherd vendors optional stage engines (`brainstorming`, `writing-plans`,
 `feature-dev`, `staff-review`, `thermonuclear`, and `code-review`) under `_vendored/` so
 a fresh clone or plugin install works without extra plugin dependencies.
 
 Vendored engines are named `ENGINE.md`, not `SKILL.md`, so Claude Code does not register
-them as slash commands. The registry's `scope` field adapts each engine to devforge's
+them as slash commands. The registry's `scope` field adapts each engine to shepherd's
 file protocol, and every dispatched stage runs non-interactively: it records open
 questions in its output file instead of asking the human. See [VENDORED.md](VENDORED.md).

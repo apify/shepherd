@@ -2,7 +2,7 @@ import subprocess
 
 from conftest import REPO_ROOT, load_json
 
-REGISTRY_PATH = REPO_ROOT / ".claude/skills/devforge/registry.base.json"
+REGISTRY_PATH = REPO_ROOT / ".claude/skills/shepherd/registry.base.json"
 REGISTRY = load_json(REGISTRY_PATH)
 REGISTRY_DIR = REGISTRY_PATH.parent  # base engine paths resolve relative to here
 
@@ -34,7 +34,7 @@ def test_no_committed_skill_references_a_plugin_path():
     # No-install guard: committed skills/agents/config must not point at plugin caches.
     out = subprocess.run(
         ["git", "grep", "-nI", "--cached", "-e", "plugins/cache", "-e", ".claude/plugins",
-         "--", ".claude/", ".devforge/"],
+         "--", ".claude/", ".shepherd/"],
         cwd=REPO_ROOT, capture_output=True, text=True,
     )
     assert out.stdout == "", f"plugin-path references found:\n{out.stdout}"

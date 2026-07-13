@@ -1,7 +1,7 @@
-# devforge run data. Runs write their own .devforge/.gitignore that keeps only
+# shepherd run data. Runs write their own .shepherd/.gitignore that keeps only
 # config.json and registry.json; run evidence is summarized in the PR body instead.
 # This repo does not commit any run data; shipped defaults live beside the skill.
-.devforge/
+.shepherd/
 
 # Editor and OS noise
 .idea/

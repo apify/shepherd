@@ -1,4 +1,4 @@
-"""Validate devforge config against the resolved registry.
+"""Validate shepherd config against the resolved registry.
 
 Pure stdlib. Used by tests and CI; the orchestrator follows the same rules in prose
 because it has no Python runtime on web. Keep both rule sets in sync.
@@ -81,11 +81,11 @@ if __name__ == "__main__":
     from pathlib import Path
 
     here = Path(__file__).resolve().parent.parent
-    repo_cfg = here / ".devforge/config.json"
-    default_cfg = here / ".claude/skills/devforge/config.default.json"
+    repo_cfg = here / ".shepherd/config.json"
+    default_cfg = here / ".claude/skills/shepherd/config.default.json"
     cfg = json.loads((repo_cfg if repo_cfg.is_file() else default_cfg).read_text())
-    base = json.loads((here / ".claude/skills/devforge/registry.base.json").read_text())
-    repo_path = here / ".devforge/registry.json"
+    base = json.loads((here / ".claude/skills/shepherd/registry.base.json").read_text())
+    repo_path = here / ".shepherd/registry.json"
     repo = json.loads(repo_path.read_text()) if repo_path.is_file() else None
     reg = merge_registry(base, repo)
     problems = validate(cfg, reg)
