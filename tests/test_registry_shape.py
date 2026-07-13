@@ -1,7 +1,7 @@
 from conftest import REPO_ROOT, load_json
 
-REGISTRY = load_json(REPO_ROOT / ".claude/skills/devforge/registry.base.json")
-CONFIG = load_json(REPO_ROOT / ".claude/skills/devforge/config.default.json")
+REGISTRY = load_json(REPO_ROOT / ".claude/skills/shepherd/registry.base.json")
+CONFIG = load_json(REPO_ROOT / ".claude/skills/shepherd/config.default.json")
 
 SINGLE_STAGES = ("verify", "architect", "implementer", "success_criteria", "fulfillment")
 STAGES = set(SINGLE_STAGES) | {"reviewers", "final_reviewers"}

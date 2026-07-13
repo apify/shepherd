@@ -1,13 +1,13 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "devforge config",
-  "description": "Stage, model, oracle, and loop-limit settings for devforge runs.",
+  "title": "shepherd config",
+  "description": "Stage, model, oracle, and loop-limit settings for shepherd runs.",
   "type": "object",
   "additionalProperties": false,
   "required": ["stages"],
   "properties": {
     "stages": {
-      "description": "Engine and model assignments for each devforge stage. Single stages (verify, architect, implementer, success_criteria, fulfillment) are optional: when absent, the built-in role table drives the stage without an engine.",
+      "description": "Engine and model assignments for each shepherd stage. Single stages (verify, architect, implementer, success_criteria, fulfillment) are optional: when absent, the built-in role table drives the stage without an engine.",
       "type": "object",
       "additionalProperties": false,
       "required": ["reviewers", "final_reviewers"],

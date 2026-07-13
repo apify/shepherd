@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1600" font-family="'Segoe UI', -apple-system, BlinkMacSystemFont, Helvetica, Arial, sans-serif" role="img" aria-label="devforge: a human-gated coding loop. The orchestrator routes, subagents judge, and files are the only handoff. The run flows from task through triage, verify, design, and human iteration to the design gate, then a cyclic implementation loop of implement, oracle, and reviewers that repeats until the oracle is green with no blocker or major finding, then final reviewers, fulfillment, and a create-PR confirm before commit. The two human gates are aligned full-width checkpoints.">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1600" font-family="'Segoe UI', -apple-system, BlinkMacSystemFont, Helvetica, Arial, sans-serif" role="img" aria-label="shepherd: a human-gated coding loop. The orchestrator routes, subagents judge, and files are the only handoff. The run flows from task through triage, verify, design, and human iteration to the design gate, then a cyclic implementation loop of implement, oracle, and reviewers that repeats until the oracle is green with no blocker or major finding, then final reviewers, fulfillment, and a create-PR confirm before commit. The two human gates are aligned full-width checkpoints.">
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0" stop-color="#0d1117"/>
@@ -44,8 +44,8 @@
   <!-- ===== Header ===== -->
   <rect x="64" y="44" width="44" height="44" rx="12" fill="url(#logo)"/>
   <path d="M78 66 h16 M86 58 v16" stroke="#0d1117" stroke-width="3.5" stroke-linecap="round"/>
-  <text x="122" y="70" font-size="40" font-weight="700" fill="#e6edf3">devforge</text>
-  <text x="124" y="98" font-size="16" fill="#8b949e">A human-gated coding loop for Claude Code &#8212; <tspan fill="#58a6ff" font-family="monospace">/devforge &lt;task&gt;</tspan></text>
+  <text x="122" y="70" font-size="40" font-weight="700" fill="#e6edf3">shepherd</text>
+  <text x="124" y="98" font-size="16" fill="#8b949e">A human-gated coding loop for Claude Code &#8212; <tspan fill="#58a6ff" font-family="monospace">/shepherd &lt;task&gt;</tspan></text>
 
   <rect x="700" y="50" width="436" height="36" rx="18" fill="#161b22" stroke="#30363d"/>
   <text x="918" y="73" font-size="13" text-anchor="middle" fill="#8b949e">orchestrator routes <tspan fill="#484f58">&#183;</tspan> subagents judge <tspan fill="#484f58">&#183;</tspan> files are the handoff</text>
@@ -91,7 +91,7 @@
   <!-- Intake row -->
   <rect x="64" y="496" width="244" height="62" rx="12" fill="#0f141b" stroke="#30363d" stroke-width="1.5"/>
   <rect x="64" y="496" width="5" height="62" rx="2.5" fill="#58a6ff"/>
-  <text x="88" y="527" font-size="15.5" font-weight="600" fill="#e6edf3" font-family="monospace">/devforge &lt;task&gt;</text>
+  <text x="88" y="527" font-size="15.5" font-weight="600" fill="#e6edf3" font-family="monospace">/shepherd &lt;task&gt;</text>
   <text x="88" y="547" font-size="12" fill="#8b949e">start a new run</text>
 
   <rect x="340" y="496" width="244" height="62" rx="12" fill="#0f141b" stroke="#30363d" stroke-width="1.5"/>

@@ -22,7 +22,7 @@
     "feature-dev": {
       "roles": ["implementer"],
       "engine": "../_vendored/feature-dev/feature-dev.md",
-      "scope": "implement only against the approved 2-design.md; skip feature-dev discovery, clarifying-question, and architecture phases; may dispatch devforge-code-explorer or devforge-code-architect for grounding only"
+      "scope": "implement only against the approved 2-design.md; skip feature-dev discovery, clarifying-question, and architecture phases; may dispatch shepherd-code-explorer or shepherd-code-architect for grounding only"
     },
     "staff-review": {
       "roles": ["reviewer", "final_reviewer"],

@@ -1,12 +1,12 @@
 ---
-name: devforge
-description: Run a task through a human-gated coding loop: cheap triage, always-on request verification, blind design + success criteria drafted by subagents and iterated with the human, a design gate before any source edit, implementation with oracle checks and blind reviewers, a fulfillment check against the success criteria, and a plain create-PR confirmation before any git write. Handles both implementation work and review-only PR/branch tasks. Invoke as /devforge <task>.
+name: shepherd
+description: Run a task through a human-gated coding loop: cheap triage, always-on request verification, blind design + success criteria drafted by subagents and iterated with the human, a design gate before any source edit, implementation with oracle checks and blind reviewers, a fulfillment check against the success criteria, and a plain create-PR confirmation before any git write. Handles both implementation work and review-only PR/branch tasks. Invoke as /shepherd <task>.
 argument-hint: "<task description>"
 ---
 
-# devforge
+# shepherd
 
-You are the orchestrator. Keep run data in `.devforge/`; `.claude/skills/` is tooling.
+You are the orchestrator. Keep run data in `.shepherd/`; `.claude/skills/` is tooling.
 
 **The orchestrator routes; subagents judge; files are the only handoff.** The orchestrator never
 writes a judgment file (`_request_fact_check.md`, `2-design.md`, `3-success-criteria.md`, review
@@ -37,7 +37,7 @@ ephemeral; the files are the record.
 **Why one file per stage:** each stage writes one file and each role reads ONLY what it needs, so
 stage context stays scoped and judgments stay independent. Reviewers judge the diff against
 `2-design.md` + `3-success-criteria.md`, never `claim.md` or peer reviews — the design and
-criteria are pasted into the reviewer's prompt; `.devforge/` itself is never granted. Blindness
+criteria are pasted into the reviewer's prompt; `.shepherd/` itself is never granted. Blindness
 applies to judgments, never to ground truth: every reviewer gets read access to the repository
 and its git history — a reviewer who can't run `git show HEAD:<file>` can't verify a refactor's
 equivalence claims. The architect never sees the success criteria; the criteria author never
@@ -45,7 +45,7 @@ sees the proposed solution. That blindness is what keeps every panel's signal in
 
 ## Keep the human in the loop (non-terminal sessions)
 
-A web/mobile/remote human sees only the chat stream — they cannot open `.devforge/` files or
+A web/mobile/remote human sees only the chat stream — they cannot open `.shepherd/` files or
 reliably type a slash-command. Surface everything they need into the conversation:
 
 - **Show the FULL `2-design.md` and `3-success-criteria.md`** whenever you present or update
@@ -61,24 +61,24 @@ reliably type a slash-command. Surface everything they need into the conversatio
 
 ## Setup / resume
 
-1. Resolve the absolute path of the target repo's `.devforge/` once at setup and use it for
+1. Resolve the absolute path of the target repo's `.shepherd/` once at setup and use it for
    every subsequent read/write — never a relative path; in long sessions the working directory
    drifts, and a relative `_state.json` write can silently land in the wrong directory.
-   `mkdir -p` it. If `.devforge/.gitignore` is missing, write it: ignore `*` except
+   `mkdir -p` it. If `.shepherd/.gitignore` is missing, write it: ignore `*` except
    `.gitignore`, `config.json`, `registry.json`.
-2. Fresh run: require a non-empty `<task>`. Write it verbatim to `.devforge/_user_request.md`.
+2. Fresh run: require a non-empty `<task>`. Write it verbatim to `.shepherd/_user_request.md`.
    Initialize `_state.json`: `{"phase":"triage","iteration":0,"head_sha":"<git rev-parse HEAD>"}`.
-3. If `.devforge/_state.json` exists, resume. If a new non-empty `<task>` differs from
+3. If `.shepherd/_state.json` exists, resume. If a new non-empty `<task>` differs from
    `_user_request.md`, ask continue vs fresh; on fresh — or when the previous run is
    `phase=done` — move the old run's files (all numbered/underscore files and `iter-*/`, keeping
    `config.json`, `config.local.json`, `registry.json`, `.gitignore`) into
-   `.devforge/archive/<timestamp>-<short-slug>/` first. Sequential runs in one session are
+   `.shepherd/archive/<timestamp>-<short-slug>/` first. Sequential runs in one session are
    normal; each gets a clean directory. When batch tasks branch off the same base, note in each
    run's PR body which sibling PRs touch the same files (merge-conflict forecast).
 4. Load config before dispatching any stage:
-   - Copy this skill's `config.default.json` to `.devforge/config.json` if absent.
-   - Shallow-merge `.devforge/config.local.json` over it if present.
-   - Resolve `registry.base.json` plus optional `.devforge/registry.json` `uses`.
+   - Copy this skill's `config.default.json` to `.shepherd/config.json` if absent.
+   - Shallow-merge `.shepherd/config.local.json` over it if present.
+   - Resolve `registry.base.json` plus optional `.shepherd/registry.json` `uses`.
    - Validate every configured `use` against `registry.stage_roles` and `registry.uses`; no
      duplicate `use` inside `reviewers` or `final_reviewers`. Single stages (`verify`,
      `architect`, `implementer`, `success_criteria`, `fulfillment`) may be absent from config.
@@ -115,9 +115,9 @@ Method line omitted. For stage key `K` with assignment `S`:
    else use `S.model` verbatim.
 3. Dispatch a subagent on model `M` with this whole instruction:
 
-> You are filling devforge's **{role}** stage. You run non-interactively: you cannot ask the
+> You are filling shepherd's **{role}** stage. You run non-interactively: you cannot ask the
 > human anything — record open questions in your output file instead. Communicate only through
-> `.devforge/` files. **Read:** {role.reads}. **Do NOT read:** {role.blind}. **Method:** follow
+> `.shepherd/` files. **Read:** {role.reads}. **Do NOT read:** {role.blind}. **Method:** follow
 > `{engine}` — scoped as: {scope}. **Write:** `{role.writes}` in this format: {role.format}.
 
 If the dispatched agent has no write access, it returns the artifact verbatim as its final
@@ -125,18 +125,18 @@ message and the orchestrator persists it to `{role.writes}` **unchanged** — a 
 not authorship; the no-judgment-files rule is not violated. Note the relay in `_progress.md`.
 
 Reviewer findings scope, regardless of what the design emphasizes, always includes two checks:
-committed code must not reference run-internal artifacts (`.devforge/`, plan files, session
+committed code must not reference run-internal artifacts (`.shepherd/`, plan files, session
 paths); and cruft preserved by a faithful migration is still a finding — "byte-identical"
 instructions cover assertions/behavior, not carried-over dead code.
 
 | role | reads | do NOT read | writes | format |
 |------|-------|-------------|--------|--------|
 | `verify` | `_user_request.md`, `1-triage.md`, codebase, referenced issue; **for a review-only run also the PR/branch description and its diff — treat that description as the claim source** | `2-design.md`, `3-success-criteria.md` | `_request_fact_check.md` | claim ledger: every request claim tagged `VALID \| STALE \| LIKELY-FIXED \| UNVERIFIABLE` with evidence, plus a one-line verdict — never empty |
-| `explorer` | codebase | `.devforge/` internals | `_codebase_map.md` | ≤1 page: key files · patterns · data flow · risks |
+| `explorer` | codebase | `.shepherd/` internals | `_codebase_map.md` | ≤1 page: key files · patterns · data flow · risks |
 | `architect` | `_user_request.md`, `1-triage.md`, `_request_fact_check.md`, `_codebase_map.md` if present, codebase; on a revision pass also its previous `2-design.md` + `_design_feedback.md` | `3-success-criteria.md` | `2-design.md` | the design template in step 3 |
 | `success_criteria` | pasted content of the "What we're solving" and "How it will work" sections of `2-design.md`, plus `_user_request.md`, `1-triage.md`, and `_request_fact_check.md` (verified facts — real paths, real coverage gaps — so criteria reference reality instead of guessing; it contains no solution) — nothing else | the rest of `2-design.md` (the solution), `claim.md` | `3-success-criteria.md` | numbered, testable criteria — each verifiable by a command or an observable behavior; no solution details |
 | `implementer` | `2-design.md`, `3-success-criteria.md`, `_request_fact_check.md`, `_codebase_map.md` if present, all prior `iter-*/review-*.md` + `final-review-*.md` + `fulfillment.md` | — | source edits + `iter-N/claim.md` | what done · every finding fixed or skipped with a specific reason · for a behavior change, add a regression test — ideally shown red before the fix and green after, with the red→green noted in `claim.md` — never weaken/delete tests |
-| `reviewer` | pasted content of `2-design.md`, `3-success-criteria.md`, `iter-N/diff.patch`, `iter-N/test-results.txt`, plus the repository itself (working tree, git history, read-only commands) — no other `.devforge/` files | `claim.md`, peer reviewers' output | `iter-N/review-<use>.md` | first line `VERDICT: PASS\|FAIL` (PASS = zero findings), then findings tagged `blocker\|major\|minor\|nit` |
+| `reviewer` | pasted content of `2-design.md`, `3-success-criteria.md`, `iter-N/diff.patch`, `iter-N/test-results.txt`, plus the repository itself (working tree, git history, read-only commands) — no other `.shepherd/` files | `claim.md`, peer reviewers' output | `iter-N/review-<use>.md` | first line `VERDICT: PASS\|FAIL` (PASS = zero findings), then findings tagged `blocker\|major\|minor\|nit` |
 | `final_reviewer` | same as reviewer, but judging the post-fix integrated state: interactions with unchanged code, consumer/contract impact, doc/AGENTS staleness — not a second pass over the patch | `claim.md`, peer reviewers' output | `iter-N/final-review-<use>.md` | same verdict format as reviewer |
 | `fulfillment` | pasted content of `3-success-criteria.md`, `iter-N/diff.patch`, `iter-N/test-results.txt`, `iter-N/claim.md`, plus the working tree (may run the non-mutating check a criterion names) | `2-design.md` solution details, review files | `iter-N/fulfillment.md` | first line `VERDICT: PASS\|FAIL`, then each criterion `MET \| NOT MET` with evidence |
 
@@ -155,7 +155,7 @@ them in `_panel.json` and dispatch from there.
 ### 1. Triage
 
 Orchestrator-owned cheap product screen — no dispatch, no deep code reading; a quick skim is
-fine. Write `.devforge/1-triage.md` in about 12 lines:
+fine. Write `.shepherd/1-triage.md` in about 12 lines:
 - Problem
 - Decision: `PROCEED | DEFER | DECLINE`
 - Complexity: `trivial | small | medium | large`
@@ -175,11 +175,11 @@ Complexity rubric:
 Blast-radius override: core/shared code or public API/response-contract changes are at least
 `medium`, even if tiny.
 
-**No fast path.** devforge earns its cost on complex work; the tiers scale the review panel,
+**No fast path.** shepherd earns its cost on complex work; the tiers scale the review panel,
 never the pipeline. A `trivial` run keeps the full stage sequence — verify, design, criteria,
 both gates, review, fulfillment. If a task looks too trivial to justify that ceremony, note it
 in the triage overview (the human may prefer to just make the change directly, outside
-devforge) — but never skip stages to accommodate it.
+shepherd) — but never skip stages to accommodate it.
 
 **Triage has no gate.** Present the overview in chat and continue. Only when the decision is
 `DEFER or DECLINE`, stop and recommend against proceeding, but let the human decide. Persist
@@ -205,9 +205,9 @@ it verbatim in `_design_feedback.md` so the architect treats it as settled. Othe
 
 **Draft.**
 - For `medium`/`large` complexity, first dispatch the `explorer` role (the
-  `devforge-code-explorer` agent when available) to write `_codebase_map.md`; the architect and
+  `shepherd-code-explorer` agent when available) to write `_codebase_map.md`; the architect and
   the implementer reuse it. For `trivial`/`small`, skip it.
-- Dispatch the `architect` stage to write `.devforge/2-design.md`. ~1 page, no code blocks, no
+- Dispatch the `architect` stage to write `.shepherd/2-design.md`. ~1 page, no code blocks, no
   file:line dumps. Product first, implementation second:
 
   ```
@@ -223,7 +223,7 @@ it verbatim in `_design_feedback.md` so the architect treats it as settled. Othe
 
   For a review-only run, `2-design.md` is the review scope: what to check and which reviewers.
 - Dispatch the `success_criteria` stage: paste it ONLY the two product sections of the design
-  (plus request, triage, and the fact-check) and have it write `.devforge/3-success-criteria.md`. It defines
+  (plus request, triage, and the fact-check) and have it write `.shepherd/3-success-criteria.md`. It defines
   "done" independently — the architect never reads it, and it never sees the solution.
 
 **Iterate — the conversation is the orchestrator's; every rewrite is a subagent's.**
@@ -244,7 +244,7 @@ it verbatim in `_design_feedback.md` so the architect treats it as settled. Othe
 
 ### 4. Design gate
 
-Do not edit source files until `.devforge/_design.approved` exists. Set
+Do not edit source files until `.shepherd/_design.approved` exists. Set
 `state.phase="design-gate"`.
 
 Propose the per-run review panel from the configured roster: start from the triage tier, adjust
@@ -254,7 +254,7 @@ diff-correctness vs adversarial vs live-probe vs contract/consumer) — a second
 reviewer re-finds the first one's findings and adds cost, not signal. **Resolve every `"auto"` model to a concrete name** (see Model
 tiering) at the settled tier — inline on each reviewer, and in a `models` map for the single
 stages (only those whose config model is `"auto"`; an explicit model keeps its name). Write
-`.devforge/_panel.json`:
+`.shepherd/_panel.json`:
 
 ```json
 {
@@ -275,7 +275,7 @@ Surface the FULL `2-design.md` + `3-success-criteria.md` + `_panel.json` to the 
 in the panel summary so the human can bump any up or down before approving (a model change is a
 Revise, folded into this gate — not a new stop). Two human-driven outcomes, recorded on disk:
 
-**Approve.** A clear "yes/approve" in chat, or the human running `/devforge-approve-design`. Copy
+**Approve.** A clear "yes/approve" in chat, or the human running `/shepherd-approve-design`. Copy
 the panel into `state.panel`, set `state.phase` to `"inner-loop"` (or `"review-run"` when
 `state.review_only` is true) and `state.iteration` to `1`, and write `_design.approved` (the
 approval skill does exactly this).
@@ -301,8 +301,8 @@ Use `state.panel`, not the raw roster; validate it against config. If absent (ol
 back to the full roster and limits and record that in `_progress.md`.
 
 For each iteration `N`:
-1. Set `state.phase="inner-loop"` and `state.iteration=N`; create `.devforge/iter-N/`.
-2. Before the first source edit, run `git status --porcelain` (ignore `.devforge/` entries); stop
+1. Set `state.phase="inner-loop"` and `state.iteration=N`; create `.shepherd/iter-N/`.
+2. Before the first source edit, run `git status --porcelain` (ignore `.shepherd/` entries); stop
    if pre-existing unrelated changes are present. On iteration 1, also run `oracle.commands` once
    on the untouched tree and record its baseline metrics (test/file counts, pass/skip counts,
    warnings, rough duration) in `iter-1/baseline.txt` — later green runs are judged against
@@ -317,7 +317,7 @@ For each iteration `N`:
    shift) fails the oracle even when everything passes, because a change can be wrong while
    staying green (e.g. a config edit that silently double-runs the suite). Expected deltas
    (e.g. tests the design adds) must be named in `claim.md`.
-4. Check `git status --porcelain` again (ignore `.devforge/`). If unrelated changes appeared,
+4. Check `git status --porcelain` again (ignore `.shepherd/`). If unrelated changes appeared,
    stop for human direction. Write `diff.patch` only for approved-run changes.
 5. Dispatch panel reviewers in parallel, each given the pasted content of `2-design.md`,
    `3-success-criteria.md`, `diff.patch`, and `test-results.txt`, plus read access to the
@@ -351,7 +351,7 @@ and claim against `3-success-criteria.md` and writes `iter-N/fulfillment.md` wit
 - When fulfillment passes: no plan mode. Summarize in chat — the fulfillment table, oracle
   status, reviewer verdicts, fixed findings, **every skipped finding with its reason**,
   `git diff --stat`. Ask **"commit & open PR?"** and proceed only on a clear yes, which records
-  `_create_pr.approved`. Headless runs use `/devforge-approve-create-pr`. This approves creating
+  `_create_pr.approved`. Headless runs use `/shepherd-approve-create-pr`. This approves creating
   the PR, not merging it.
 
 ### 8. Review mode (review-only runs)
@@ -364,7 +364,7 @@ with `state.phase="inner-loop"` and run the normal loop from step 5.
 
 ### 9. Finish
 
-1. Re-check `git status --porcelain` (ignore `.devforge/`); stop if unrelated changes are present.
+1. Re-check `git status --porcelain` (ignore `.shepherd/`); stop if unrelated changes are present.
 2. Commit, then write the commit message and PR body in plain language — **What we're solving ·
    How · Alternatives considered** — and nothing else. Never enumerate code changes that are
    obvious from the diff. Summarize run evidence in the PR body (fulfillment result, oracle
@@ -374,7 +374,7 @@ with `state.phase="inner-loop"` and run the normal loop from step 5.
 
 ## Hard rules
 
-- Only write inside `.devforge/` until `_design.approved` exists.
+- Only write inside `.shepherd/` until `_design.approved` exists.
 - The orchestrator routes; it never writes a judgment file. Human feedback goes verbatim into
   `_design_feedback.md`; subagents rewrite `2-design.md` / `3-success-criteria.md` /
   `_request_fact_check.md` — never the orchestrator.
@@ -390,10 +390,10 @@ with `state.phase="inner-loop"` and run the normal loop from step 5.
 - Verify runs on every run; the claim ledger is never empty.
 - Blindness: architect never reads the success criteria; the criteria author never sees the
   solution; reviewers never see `claim.md` or peer reviews, and fulfillment never sees reviews
-  (`claim.md` it may read — it needs the skip reasons). `.devforge/` judgment files are pasted,
+  (`claim.md` it may read — it needs the skip reasons). `.shepherd/` judgment files are pasted,
   never granted. The repository itself is never blinded — ground truth stays readable to every
   role.
-- Never commit `.devforge/` files. It's repo-gitignored; the run's own `.devforge/.gitignore`
+- Never commit `.shepherd/` files. It's repo-gitignored; the run's own `.shepherd/.gitignore`
   exceptions (`config.json`, `registry.json`) are local-only, not an invitation to `git add -f`
   or commit them.
 - Keep design short and high-level: major changes only, never an exhaustive file list.

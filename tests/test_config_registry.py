@@ -5,8 +5,8 @@ from conftest import REPO_ROOT, load_json
 sys.path.insert(0, str(REPO_ROOT / "scripts"))
 from validate_config import validate  # noqa: E402
 
-REGISTRY = load_json(REPO_ROOT / ".claude/skills/devforge/registry.base.json")
-CONFIG = REPO_ROOT / ".claude/skills/devforge/config.default.json"
+REGISTRY = load_json(REPO_ROOT / ".claude/skills/shepherd/registry.base.json")
+CONFIG = REPO_ROOT / ".claude/skills/shepherd/config.default.json"
 
 
 def test_default_config_is_valid():
