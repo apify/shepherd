@@ -218,7 +218,9 @@ it verbatim in `_design_feedback.md` so the architect treats it as settled. Othe
 **Draft.**
 - For `medium`/`large` complexity, first dispatch the `explorer` role (the
   `shepherd-code-explorer` agent when available) to write `_codebase_map.md`; the architect and
-  the implementer reuse it. For `trivial`/`small`, skip it.
+  the implementer reuse it. For `trivial`/`small`, skip it. Also skip it when the `verify`
+  fact-check already provides a file-level map and the change is mechanical or localized (pure
+  deletion, rename, inlining) — note the skip and why in `_progress.md`.
 - Dispatch the `architect` stage to write `.shepherd/2-design.md`. ~1 page, no code blocks, no
   file:line dumps. Product first, implementation second. A design that unifies a
   style/format/template must pin it with one fully-worked example (a complete sentence or
