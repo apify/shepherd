@@ -123,8 +123,11 @@ Method line omitted. For stage key `K` with assignment `S`:
 
 > You are filling shepherd's **{role}** stage. You run non-interactively: you cannot ask the
 > human anything — record open questions in your output file instead. Communicate only through
-> `.shepherd/` files. **Read:** {role.reads}. **Do NOT read:** {role.blind}. **Method:** follow
-> `{engine}` — scoped as: {scope}. **Write:** `{role.writes}` in this format: {role.format}.
+> `.shepherd/` files. **Read:** {role.reads}. **Do NOT read:** {role.blind} — and keep
+> recursive searches out of `.shepherd/` entirely (`rg --glob '!.shepherd/**'`,
+> `grep -r --exclude-dir=.shepherd`); matching its content by accident is a blindness leak you
+> must disclose. **Method:** follow `{engine}` — scoped as: {scope}. **Write:** `{role.writes}`
+> in this format: {role.format}.
 
 If the dispatched agent has no write access, it returns the artifact verbatim as its final
 message and the orchestrator persists it to `{role.writes}` **unchanged** — a mechanical relay,
@@ -217,7 +220,10 @@ it verbatim in `_design_feedback.md` so the architect treats it as settled. Othe
   `shepherd-code-explorer` agent when available) to write `_codebase_map.md`; the architect and
   the implementer reuse it. For `trivial`/`small`, skip it.
 - Dispatch the `architect` stage to write `.shepherd/2-design.md`. ~1 page, no code blocks, no
-  file:line dumps. Product first, implementation second:
+  file:line dumps. Product first, implementation second. A design that unifies a
+  style/format/template must pin it with one fully-worked example (a complete sentence or
+  instance showing placement and punctuation), not only named parts — an under-specified
+  template makes each implementer/reviewer pair re-litigate the shape:
 
   ```
   ## What we're solving      (product: the problem and who hits it)
@@ -377,7 +383,9 @@ with `state.phase="inner-loop"` and run the normal loop from step 5.
 2. Commit, then write the commit message and PR body in plain language — **What we're solving ·
    How · Alternatives considered** — and nothing else. Never enumerate code changes that are
    obvious from the diff. Summarize run evidence in the PR body (fulfillment result, oracle
-   result, reviewer verdicts, skipped findings); the run files themselves stay ignored.
+   result, reviewer verdicts, skipped findings); the run files themselves stay ignored. When the
+   run completes a tracked issue, end the PR body with a closing keyword (`Closes #N`) so the
+   issue auto-closes on merge; reference parent/epic issues non-closingly (`Part of #M`).
 3. If a writable remote exists, push and open a PR. Record the evidence summary, approval
    timestamps, and PR URL in `_progress.md`, then set `state.phase="done"`.
 
