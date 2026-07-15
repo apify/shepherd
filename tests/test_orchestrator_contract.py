@@ -201,11 +201,11 @@ def test_reviewers_receive_pasted_judgments_not_file_grants():
     assert "never to ground truth" in ORCH
 
 
-def test_orchestrator_converges_on_severity():
-    # No open blocker/major; minor/nit fixed or skipped with a reason, skips shown at confirm.
+def test_orchestrator_converges_on_zero_findings():
+    # Every finding gets fixed, whatever its severity; nothing is skipped or deferred.
     assert "blocker" in ORCH and "major" in ORCH
-    assert "skipped with a specific reason" in ORCH
-    assert "every skipped finding with its reason" in ORCH
+    assert "every finding gets fixed" in ORCH
+    assert "never skips or defers" in ORCH
     # Abandon is terminal: phase=done, and the tree is left for the human.
     assert "On abandon" in ORCH
 

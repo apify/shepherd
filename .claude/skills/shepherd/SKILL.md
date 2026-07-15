@@ -147,7 +147,7 @@ claims, and comments restating the obvious are findings.
 | `explorer` | codebase | `.shepherd/` internals | `_codebase_map.md` | ≤1 page: key files · patterns · data flow · risks |
 | `architect` | `_user_request.md`, `1-triage.md`, `_request_fact_check.md`, `_codebase_map.md` if present, `_design_feedback.md` if present (settled human decisions — constraints, not suggestions), codebase; on a revision pass also its previous `2-design.md` | `3-success-criteria.md` | `2-design.md` | the design template in step 3 |
 | `success_criteria` | pasted content of the "What we're solving" and "How it will work" sections of `2-design.md`, plus `_user_request.md`, `1-triage.md`, and `_request_fact_check.md` (verified facts — real paths, real coverage gaps — so criteria reference reality instead of guessing; it contains no solution) — nothing else | the rest of `2-design.md` (the solution), `claim.md` | `3-success-criteria.md` | numbered, testable criteria — each verifiable by a command or an observable behavior; no solution details |
-| `implementer` | `2-design.md`, `3-success-criteria.md`, `_request_fact_check.md`, `_codebase_map.md` if present, all prior `iter-*/review-*.md` + `final-review-*.md` + `fulfillment.md` | — | source edits + `iter-N/claim.md` | what done · every finding fixed or skipped with a specific reason · for a behavior change, add a regression test — ideally shown red before the fix and green after, with the red→green noted in `claim.md` — never weaken/delete tests |
+| `implementer` | `2-design.md`, `3-success-criteria.md`, `_request_fact_check.md`, `_codebase_map.md` if present, all prior `iter-*/review-*.md` + `final-review-*.md` + `fulfillment.md` | — | source edits + `iter-N/claim.md` | what done · every finding fixed, none skipped or deferred · for a behavior change, add a regression test — ideally shown red before the fix and green after, with the red→green noted in `claim.md` — never weaken/delete tests |
 | `reviewer` | pasted content of `2-design.md`, `3-success-criteria.md`, `iter-N/diff.patch`, `iter-N/test-results.txt`, plus the repository itself (working tree, git history, read-only commands) — no other `.shepherd/` files | `claim.md`, peer reviewers' output | `iter-N/review-<use>.md` | first line `VERDICT: PASS\|FAIL` (PASS = zero findings), then findings tagged `blocker\|major\|minor\|nit` |
 | `final_reviewer` | same as reviewer, but judging the post-fix integrated state: interactions with unchanged code, consumer/contract impact, doc/AGENTS staleness — not a second pass over the patch | `claim.md`, peer reviewers' output | `iter-N/final-review-<use>.md` | same verdict format as reviewer |
 | `fulfillment` | pasted content of `3-success-criteria.md`, `iter-N/diff.patch`, `iter-N/test-results.txt`, `iter-N/claim.md`, plus the working tree (may run the non-mutating check a criterion names) | `2-design.md` solution details, review files | `iter-N/fulfillment.md` | first line `VERDICT: PASS\|FAIL`, then each criterion `MET \| NOT MET` with evidence |
@@ -343,13 +343,14 @@ For each iteration `N`:
 5. Dispatch panel reviewers in parallel, each given the pasted content of `2-design.md`,
    `3-success-criteria.md`, `diff.patch`, and `test-results.txt`, plus read access to the
    repository. They stay blind to `claim.md` and peer reviews.
-6. Converge when the oracle is green and baseline-consistent, no `blocker` or `major` finding is open, and every
-   `minor`/`nit` is fixed or recorded as skipped with a specific reason in `claim.md`. Otherwise
-   iterate until `inner_iterations`; then stop and present a findings table
-   (fixed / open / skipped), the oracle status, and the options: extend the limit, accept with
-   skips recorded, or abandon. On abandon, record the decision in `_progress.md` and set
-   `state.phase="done"`; leave the working-tree edits for the human to keep or discard — never
-   revert them yourself.
+6. Converge when the oracle is green and baseline-consistent and every reviewer verdict is PASS
+   — every finding gets fixed, whatever its severity: nits too; the implementer never skips or
+   defers one. The lone exception is the human's: a finding fixable only by changing the
+   approved design or criteria (see Hard rules). Otherwise iterate until `inner_iterations`;
+   then stop and present a findings table (fixed / open), the oracle status, and the options:
+   extend the limit, accept with open findings recorded, or abandon. On abandon, record the
+   decision in `_progress.md` and set `state.phase="done"`; leave the working-tree edits for
+   the human to keep or discard — never revert them yourself.
 
 When converged, set `state.phase="final-review"` if the panel has final reviewers; otherwise set
 `state.phase="create-pr"`.
@@ -357,7 +358,7 @@ When converged, set `state.phase="final-review"` if the panel has final reviewer
 ### 6. Final review
 
 Run panel `final_reviewers` in parallel (same pasted-content rule, plus working-tree access).
-Open `blocker`/`major` findings trigger a targeted implementer fix and a re-run of the final
+Any finding triggers a targeted implementer fix and a re-run of the final
 reviewers (and the regular reviewers too when the fix is broad), staying in
 `phase="final-review"`, bounded by `final_review_rounds`. When clean by the step 5 convergence
 rule, set `state.phase="create-pr"`.
@@ -372,10 +373,9 @@ and claim against `3-success-criteria.md` and writes `iter-N/fulfillment.md` wit
   When limits are exhausted, or the human disputes a criterion itself, ask the human: accept
   with the exception recorded, extend the limit, or abandon.
 - When fulfillment passes: no plan mode. Summarize in chat — the fulfillment table, oracle
-  status, reviewer verdicts, fixed findings, **every skipped finding with its reason**,
-  `git diff --stat`. Ask **"commit & open PR?"** and proceed only on a clear yes, which records
-  `_create_pr.approved`. Headless runs use `/shepherd-approve-create-pr`. This approves creating
-  the PR, not merging it.
+  status, reviewer verdicts, fixed findings, `git diff --stat`. Ask **"commit & open PR?"** and
+  proceed only on a clear yes, which records `_create_pr.approved`. Headless runs use
+  `/shepherd-approve-create-pr`. This approves creating the PR, not merging it.
 
 ### 8. Review mode (review-only runs)
 
@@ -398,7 +398,7 @@ normal loop from step 5.
    **Otherwise** write the PR body in plain language — **What we're solving · How ·
    Alternatives considered**. Either way: keep the commit message plain, never enumerate code
    changes that are obvious from the diff, and summarize run evidence (fulfillment result, oracle
-   result, reviewer verdicts, skipped findings); the run files themselves stay ignored. When the
+   result, reviewer verdicts); the run files themselves stay ignored. When the
    run completes a tracked issue, end the PR body with a closing keyword (`Closes #N`) so the
    issue auto-closes on merge; reference parent/epic issues non-closingly (`Part of #M`).
 3. If a writable remote exists, push and open a PR. Record the evidence summary, approval
@@ -422,7 +422,7 @@ normal loop from step 5.
 - Verify runs on every run; the claim ledger is never empty.
 - Blindness: architect never reads the success criteria; the criteria author never sees the
   solution; reviewers never see `claim.md` or peer reviews, and fulfillment never sees reviews
-  (`claim.md` it may read — it needs the skip reasons). `.shepherd/` judgment files are pasted,
+  (`claim.md` it may read — it needs the claimed deltas and red→green evidence). `.shepherd/` judgment files are pasted,
   never granted. The repository itself is never blinded — ground truth stays readable to every
   role.
 - shepherd never commits `.shepherd/` paths. Run data stays ignored via the run's
@@ -434,8 +434,8 @@ normal loop from step 5.
 - The panel, not the roster, drives the run; never run a `use` not in config.
 - Trust the oracle, not model self-reports — and trust baselines, not bare green: an unexplained
   oracle-metric delta is a failure. Never weaken/delete tests.
-- Converge on severity: no open `blocker`/`major`; every `minor`/`nit` fixed or skipped with a
-  specific reason, and every skip shown at the create-PR confirm.
+- Converge on zero open findings: every finding is fixed, whatever its severity — nits too;
+  the implementer never skips or defers one.
 - A finding fixable only by changing the approved `2-design.md` / `3-success-criteria.md` is the
   human's call — surface it at the gate; never edit an approved artifact to silence a finding.
 - No PR without fulfillment: every criterion `MET`, or the human explicitly accepts the

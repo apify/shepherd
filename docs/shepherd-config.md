@@ -42,8 +42,8 @@ one file and each role reads only what it needs, so context stays scoped and jud
 stay independent. The architect never reads `3-success-criteria.md`; the criteria author
 never sees the proposed solution; reviewers judge pasted content (design, criteria, diff,
 test output) while reading the repository itself for ground truth, and never see
-`claim.md` or each other's findings; fulfillment reads `claim.md` for the skip reasons but
-not the reviews. The orchestrator never writes a judgment file — human feedback lands verbatim
+`claim.md` or each other's findings; fulfillment reads `claim.md` for the claimed test
+deltas but not the reviews. The orchestrator never writes a judgment file — human feedback lands verbatim
 in `_design_feedback.md` and subagents fold it into their own files.
 
 Collapsing the files would either pollute role context or break that independence.

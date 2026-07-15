@@ -57,7 +57,7 @@ flowchart TD
     ReviewOnly -->|no| Implement["Implement approved design"]
     Implement --> Oracle["Run oracle commands"]
     Oracle --> Reviewers["Run blind reviewers"]
-    Reviewers --> Clean{"Oracle green,<br/>no blocker/major open?"}
+    Reviewers --> Clean{"Oracle green,<br/>all findings fixed?"}
     Clean -->|no| Implement
     Clean -->|yes| FinalReview["Final reviewers (if configured)"]
     FinalReview -->|findings| Implement
@@ -78,7 +78,7 @@ flowchart TD
   iterate with the human         -> feedback file + revision passes
                                  -> DESIGN GATE: approve design + criteria + panel
   implement -> oracle -> blind reviewers -> final reviewers
-                                    (loop until no blocker/major; skips recorded)
+                                    (loop until every finding is fixed)
   fulfillment (subagent)         -> every criterion MET, or reopen / ask
   create-PR confirm (plain chat) -> commit / PR
 ```
@@ -94,10 +94,10 @@ change can use the full roster. The panel also pins the model for each stage —
 bump up or down before approving. Approval covers the design, the success criteria, and
 the panel together.
 
-Convergence is severity-gated: no `blocker` or `major` finding may stay open, and every
-`minor`/`nit` is either fixed or skipped with a specific reason — with all skips shown to
-you at the create-PR confirm. No PR happens without fulfillment: every criterion `MET`,
-or you explicitly accept the recorded exception.
+Convergence is zero-findings: every finding gets fixed, whatever its severity — nits too;
+nothing is skipped and nothing waits on your nudge. You only hear about open findings if
+the iteration limits run out first. No PR happens without fulfillment: every criterion
+`MET`, or you explicitly accept the recorded exception.
 
 On web/mobile/remote sessions the human sees only the chat stream, so shepherd surfaces
 everything into the conversation: the full `2-design.md` and `3-success-criteria.md` are
@@ -201,8 +201,8 @@ verbatim into `_design_feedback.md`, and subagents fold it into their files, so 
 resume from disk at any point. The architect never reads the success criteria; the
 criteria author never sees the solution; reviewers judge pasted judgment files (design,
 criteria, diff, tests) while reading the repository itself for ground truth, and stay
-blind to `claim.md` and to each other. Fulfillment reads `claim.md` for the skip reasons
-but never the reviews. Blindness applies to judgments, never to ground truth: only
+blind to `claim.md` and to each other. Fulfillment reads `claim.md` for the claimed test
+deltas but never the reviews. Blindness applies to judgments, never to ground truth: only
 `.shepherd/` judgment files are gated — the repository stays readable to every role.
 
 That split is what makes multiple judgments produce independent signal. Collapsing the
