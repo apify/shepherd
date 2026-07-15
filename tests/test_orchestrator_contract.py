@@ -204,6 +204,8 @@ def test_orchestrator_converges_on_severity():
     assert "blocker" in ORCH and "major" in ORCH
     assert "skipped with a specific reason" in ORCH
     assert "every skipped finding with its reason" in ORCH
+    # Abandon is terminal: phase=done, and the tree is left for the human.
+    assert "On abandon" in ORCH
 
 
 def test_fulfillment_check_gates_the_pr():
@@ -221,6 +223,8 @@ def test_orchestrator_has_first_class_review_mode():
     assert "do NOT implement" in ORCH
     # A follow-up fix run must not collide with the review-run artifacts.
     assert "next free `iter-N`" in ORCH
+    # A finished review run is terminal; only an explicit human request reopens it.
+    assert "a review-only run ends here" in ORCH
 
 
 def test_orchestrator_accept_approves_revise_iterates_no_self_approve():

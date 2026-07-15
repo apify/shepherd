@@ -343,7 +343,9 @@ For each iteration `N`:
    `minor`/`nit` is fixed or recorded as skipped with a specific reason in `claim.md`. Otherwise
    iterate until `inner_iterations`; then stop and present a findings table
    (fixed / open / skipped), the oracle status, and the options: extend the limit, accept with
-   skips recorded, or abandon.
+   skips recorded, or abandon. On abandon, record the decision in `_progress.md` and set
+   `state.phase="done"`; leave the working-tree edits for the human to keep or discard — never
+   revert them yourself.
 
 When converged, set `state.phase="final-review"` if the panel has final reviewers; otherwise set
 `state.phase="create-pr"`.
@@ -375,9 +377,11 @@ and claim against `3-success-criteria.md` and writes `iter-N/fulfillment.md` wit
 
 After the design gate approves the review scope, build `iter-1/diff.patch` from the branch
 under review (`git diff <base>...HEAD`), set `state.phase="review-run"`, and run the panel
-reviewers and final reviewers against it. Present a findings summary in chat. **do NOT implement
-and do NOT merge.** If the human then asks to fix findings, continue at the next free `iter-N`
-with `state.phase="inner-loop"` and run the normal loop from step 5.
+reviewers and final reviewers against it. Present a findings summary in chat, record it in
+`_progress.md`, and set `state.phase="done"` — a review-only run ends here, with no commit and
+no PR. **do NOT implement and do NOT merge.** If the human then asks to fix findings, reopen
+the same run: set `state.phase="inner-loop"`, continue at the next free `iter-N`, and run the
+normal loop from step 5.
 
 ### 9. Finish
 
