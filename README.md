@@ -167,8 +167,9 @@ match. Approve the prompts once in that environment.
 ## Files
 
 Run data lives in `.shepherd/`; plugin tooling lives in `.claude/skills/`. Each run
-writes a `.shepherd/.gitignore` that keeps only `config.json` and `registry.json`
-committed; run evidence is summarized in the PR body instead.
+writes a `.shepherd/.gitignore` that keeps everything ignored except `config.json` and
+`registry.json` — committable, shareable team config (shepherd itself never commits
+`.shepherd/` paths); run evidence is summarized in the PR body instead.
 
 Human-facing files:
 

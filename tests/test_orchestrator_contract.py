@@ -172,6 +172,8 @@ def test_orchestrator_archives_previous_run_on_fresh_start():
 
 def test_setup_writes_run_gitignore():
     assert ".shepherd/.gitignore" in ORCH
+    # Humans may commit config.json/registry.json; shepherd never stages .shepherd/ paths.
+    assert "never stages" in ORCH
 
 
 def test_orchestrator_has_complexity_rubric_with_numbers():

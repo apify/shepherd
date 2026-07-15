@@ -425,9 +425,9 @@ normal loop from step 5.
   (`claim.md` it may read — it needs the skip reasons). `.shepherd/` judgment files are pasted,
   never granted. The repository itself is never blinded — ground truth stays readable to every
   role.
-- Never commit `.shepherd/` files. It's repo-gitignored; the run's own `.shepherd/.gitignore`
-  exceptions (`config.json`, `registry.json`) are local-only, not an invitation to `git add -f`
-  or commit them.
+- shepherd never commits `.shepherd/` paths. Run data stays ignored via the run's
+  `.shepherd/.gitignore`; its exceptions (`config.json`, `registry.json`) exist so the human
+  can commit shared team config — shepherd itself never stages even those.
 - Keep design short and high-level: major changes only, never an exhaustive file list.
 - Surface human-facing artifacts into the human's channel; on-disk files and slash-commands are
   never the only door.
