@@ -53,7 +53,7 @@ Collapsing the files would either pollute role context or break that independenc
 | Stage | Default | Reads | Writes |
 |---|---|---|---|
 | `verify` | built-in (optional engine) | `_user_request.md`, `1-triage.md`, codebase, issue | `_request_fact_check.md` |
-| `architect` | built-in (optional engine) | request, triage, fact check, `_codebase_map.md` if present, codebase; prior design + feedback on revision | `2-design.md` |
+| `architect` | built-in (optional engine) | request, triage, fact check, `_codebase_map.md` if present, feedback if present, codebase; prior design on revision | `2-design.md` |
 | `success_criteria` | built-in (optional engine) | pasted product sections of `2-design.md`, request, triage | `3-success-criteria.md` |
 | `implementer` | built-in (optional engine) | design, criteria, fact check, map, prior reviews | source edits, `claim.md` |
 | `reviewers` | `staff-review` | pasted design, criteria, diff, test output, repository (working tree, git history) | `review-<use>.md` |
