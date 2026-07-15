@@ -281,7 +281,10 @@ def test_orchestrator_documents_oracle_commands():
 
 def test_orchestrator_documents_dirty_worktree_protection():
     assert "git status --porcelain" in ORCH
-    assert "pre-existing unrelated changes" in ORCH
+    # A dirty tree is allowed; pre-existing paths are recorded, kept out of
+    # the diff, and never committed.
+    assert "predirty.txt" in ORCH
+    assert "stay separable" in ORCH
     # The run's own .shepherd files must not trip the check.
     assert "ignore `.shepherd/`" in ORCH
 
