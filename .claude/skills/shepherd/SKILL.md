@@ -48,7 +48,8 @@ A web/mobile/remote human sees only the chat stream — they cannot open `.sheph
 reliably type a slash-command. Surface everything they need into the conversation:
 
 - **Show the FULL `2-design.md` and `3-success-criteria.md`** whenever you present or update
-  them — paste complete content, render as an Artifact, or send as a file; never just a path.
+  them — paste complete content, render as an Artifact, or send as a file; never a summary,
+  never just a path.
 - **Keep a visible progress view.** Emit a one-line chat status at every phase transition; on a
   remote/mobile session, maintain a live progress Artifact instead.
 - **Gates are chat-first**; slash-commands are a fallback, not the only door. Channel order:
@@ -204,7 +205,8 @@ ledger in `_request_fact_check.md`: every claim in the request tagged
 a claim is fine — remove artifacts it leaves). **For a review-only run the claim source is the
 PR/branch description** (fetch it, e.g. `gh pr view`): tag each thing the PR says it does against
 its actual diff and the codebase — the "does the PR do what it claims" lens no reviewer covers.
-If core claims are stale or already fixed, present the verdict and stop; the human decides.
+If core claims are stale or already fixed, present the verdict with a recommendation and stop;
+the human decides.
 **If the ledger invalidates the requested mechanism but not the goal** (the fix as specified
 cannot work, e.g. an API/SDK constraint, but the problem is real), don't silently design around
 it: present the constraint and viable options with one recommendation, wait for the human's
@@ -217,7 +219,8 @@ Otherwise set `state.phase="design"`.
 - For `medium`/`large` complexity, first dispatch the `explorer` role (the
   `shepherd-code-explorer` agent when available) to write `_codebase_map.md`; architect and
   implementer reuse it. Skip for `trivial`/`small`, or when the verify fact-check already maps
-  the files and the change is mechanical (deletion, rename, inlining) — note why in `_progress.md`.
+  the files and the change is mechanical or localized (deletion, rename, inlining) — note why
+  in `_progress.md`.
 - Dispatch the `architect` stage to write `.shepherd/2-design.md`. ~1 page, no code blocks, no
   file:line dumps. Product first, implementation second. A design that unifies a
   style/format/template must pin it with one fully-worked example (a complete sentence or
