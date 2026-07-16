@@ -237,6 +237,10 @@ def test_orchestrator_has_first_class_review_mode():
     assert "next free `iter-N`" in ORCH
     # A finished review run is terminal; only an explicit human request reopens it.
     assert "a review-only run ends here" in ORCH
+    # Review-only runs skip success criteria; the review scope is the whole contract.
+    assert "nothing gets built" in ORCH
+    # The PR branch is checked out at triage so verify/design/reviewers all read it.
+    assert "every later stage reads that checkout" in ORCH
 
 
 def test_orchestrator_accept_approves_revise_iterates_no_self_approve():

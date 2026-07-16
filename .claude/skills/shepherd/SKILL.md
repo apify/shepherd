@@ -1,6 +1,6 @@
 ---
 name: shepherd
-description: Run a task through a human-gated coding loop: cheap triage, always-on request verification, blind design + success criteria drafted by subagents and iterated with the human, a design gate before any source edit, implementation with oracle checks and blind reviewers, a fulfillment check against the success criteria, and a plain create-PR confirmation before any git write. Handles both implementation work and review-only PR/branch tasks. Invoke as /shepherd <task>.
+description: Use when the human asks for a coding or review task to run through shepherd's human-gated pipeline with durable run files under .shepherd/ instead of direct editing — features, bug fixes, refactors, or review-only "review PR/branch X" tasks. Invoked on demand: /shepherd <task> starts a run, bare /shepherd resumes the run recorded in .shepherd/_state.json — never auto-invoked for a task that merely looks suitable.
 argument-hint: "<task description>"
 ---
 
@@ -196,7 +196,9 @@ the change directly, outside shepherd) — but never skip stages.
 
 **Triage has no gate.** Present the overview in chat and continue. Only when the decision is
 `DEFER or DECLINE`, stop and recommend against proceeding, but let the human decide. Persist
-`state.review_only=true|false` from the "Review-only:" line, then set `state.phase="verify"`.
+`state.review_only=true|false` from the "Review-only:" line; on a review-only run, check out
+the branch under review now (`gh pr checkout <N>`/`git switch`; stop if local changes block the
+switch) — every later stage reads that checkout. Then set `state.phase="verify"`.
 
 ### 2. Verify
 
@@ -241,7 +243,9 @@ it verbatim in `_design_feedback.md` so the architect treats it as settled. Othe
   For a review-only run, `2-design.md` is the review scope: what to check and which reviewers.
 - Dispatch the `success_criteria` stage: paste it ONLY the two product sections of the design
   (plus request, triage, and the fact-check) and have it write `.shepherd/3-success-criteria.md`. It defines
-  "done" independently — the architect never reads it, and it never sees the solution.
+  "done" independently — the architect never reads it, and it never sees the solution. Skip it
+  on a review-only run: nothing gets built, so the review scope in `2-design.md` is the whole
+  contract.
 
 **Iterate — the conversation is the orchestrator's; every rewrite is a subagent's.**
 - Present the FULL `2-design.md` + `3-success-criteria.md` (see "Keep the human in the loop"),
@@ -288,8 +292,9 @@ stages (only those whose config model is `"auto"`; an explicit model keeps its n
 
 The approved panel must be a subset of the configured roster.
 
-Surface the FULL `2-design.md` + `3-success-criteria.md` + `_panel.json` to the human, then
-**stop for the human's decision.** Approval covers all three. Show the resolved per-stage models
+Surface the FULL `2-design.md` + `3-success-criteria.md` (when present) + `_panel.json` to the
+human, then **stop for the human's decision.** Approval covers all three — design + panel only
+on a review-only run. Show the resolved per-stage models
 in the panel summary so the human can bump any up or down before approving (a model change is a
 Revise, folded into this gate — not a new stop). Two human-driven outcomes, recorded on disk:
 

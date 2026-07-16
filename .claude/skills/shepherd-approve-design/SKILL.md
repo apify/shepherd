@@ -11,7 +11,8 @@ argument-hint: ""
 Record human approval of the design and review panel so implementation can begin.
 
 1. Read `.shepherd/2-design.md`, `.shepherd/3-success-criteria.md`, and `.shepherd/_panel.json`;
-   stop if any is missing. Approval covers all three.
+   stop if any is missing — except `3-success-criteria.md`, which review-only runs don't create.
+   Approval covers all three (two on a review-only run).
 2. Summarize the approach, success criteria, reviewers, final reviewers, limits, and panel
    reason in 3-5 lines.
 3. Copy the approved panel into `_state.json`:
