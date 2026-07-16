@@ -94,11 +94,11 @@ Resume by phase:
   `approved_commit`, stop and re-confirm the design with the human first. Otherwise load
   `_panel.json` into `state.panel`, set `state.iteration=1`, and set `state.phase="inner-loop"`
   — or `"review-run"` when `state.review_only` is true.
-- `phase=design-gate` without the marker → re-present the design + panel (step 4) and wait.
+- `phase=design-gate` without the marker → re-present the design + panel (step 4, Design gate) and wait.
 - `phase=inner-loop`, `final-review`, or `review-run` → continue that phase.
-- `phase=create-pr` + `_create_pr.approved` → go to step 9.
+- `phase=create-pr` + `_create_pr.approved` → go to step 9 (Finish).
 - `phase=create-pr` without the marker → dispatch fulfillment first if the latest
-  `iter-N/fulfillment.md` is missing, then act on its verdict per step 7.
+  `iter-N/fulfillment.md` is missing, then act on its verdict per step 7 (Fulfillment).
 - `phase=done` → the run is complete; report and stop.
 - Otherwise, re-announce the stop being waited on and stop.
 
@@ -141,7 +141,7 @@ stale references, wrong claims, and comments restating the obvious are findings.
 |------|-------|-------------|--------|--------|
 | `verify` | `_user_request.md`, `1-triage.md`, codebase, referenced issue; **for a review-only run also the PR/branch description and its diff — treat that description as the claim source** | `2-design.md`, `3-success-criteria.md` | `_request_fact_check.md` | claim ledger: every request claim tagged `VALID \| STALE \| LIKELY-FIXED \| UNVERIFIABLE` with evidence, plus a one-line verdict — never empty |
 | `explorer` | codebase | `.shepherd/` internals | `_codebase_map.md` | ≤1 page: key files · patterns · data flow · risks |
-| `architect` | `_user_request.md`, `1-triage.md`, `_request_fact_check.md`, `_codebase_map.md` if present, `_design_feedback.md` if present (settled human decisions — constraints, not suggestions), codebase; on a revision pass also its previous `2-design.md` | `3-success-criteria.md` | `2-design.md` | the design template in step 3 |
+| `architect` | `_user_request.md`, `1-triage.md`, `_request_fact_check.md`, `_codebase_map.md` if present, `_design_feedback.md` if present (settled human decisions — constraints, not suggestions), codebase; on a revision pass also its previous `2-design.md` | `3-success-criteria.md` | `2-design.md` | the design template in step 3 (Design) |
 | `success_criteria` | pasted content of the "What we're solving" and "How it will work" sections of `2-design.md`, plus `_user_request.md`, `1-triage.md`, and `_request_fact_check.md` (verified facts — real paths, real coverage gaps — so criteria reference reality instead of guessing; it contains no solution) — nothing else | the rest of `2-design.md` (the solution), `claim.md` | `3-success-criteria.md` | numbered, testable criteria — each verifiable by a command or an observable behavior; no solution details |
 | `implementer` | `2-design.md`, `3-success-criteria.md`, `_request_fact_check.md`, `_codebase_map.md` if present, all prior `iter-*/review-*.md` + `final-review-*.md` + `fulfillment.md` | — | source edits + `iter-N/claim.md` | what done · every finding fixed, none skipped or deferred · for a behavior change, add a regression test — ideally shown red before the fix and green after, with the red→green noted in `claim.md` — never weaken/delete tests |
 | `reviewer` | pasted content of `2-design.md`, `3-success-criteria.md`, `iter-N/diff.patch`, `iter-N/test-results.txt`, plus the repository itself (working tree, git history, read-only commands) — no other `.shepherd/` files | `claim.md`, peer reviewers' output | `iter-N/review-<use>.md` | first line `VERDICT: PASS\|FAIL` (PASS = zero findings), then findings tagged `blocker\|major\|minor\|nit` |
@@ -157,13 +157,13 @@ explicit name (`opus`, `sonnet`, `haiku`) is used verbatim. Resolve `"auto"` as:
 (`sonnet` for a revision pass — it folds feedback into an existing design without re-exploring);
 `final_reviewer` → `opus` (`sonnet` for `trivial`/`small`). `sonnet` is the floor for review —
 never `haiku`. Pre-gate stages (verify, explorer, architect, success_criteria) resolve `"auto"`
-at dispatch time from this table. At the design gate (step 4), record all picks in
+at dispatch time from this table. At step 4 (Design gate), record all picks in
 `_panel.json`: the pre-gate ones as the record of what ran, the post-gate ones (implementer,
 reviewers, final reviewers, fulfillment) for the human to edit before approving.
 
 ## Procedure
 
-### 1. Triage
+### 1. Triage — `phase=triage`
 
 Orchestrator-owned cheap product screen — no dispatch, no deep code reading; a quick skim is
 fine. Write `.shepherd/1-triage.md` in about 12 lines:
@@ -197,7 +197,7 @@ the change directly, outside shepherd) — but never skip stages.
 the branch under review now (`gh pr checkout <N>`/`git switch`; stop if local changes block the
 switch) — every later stage reads that checkout. Then set `state.phase="verify"`.
 
-### 2. Verify
+### 2. Verify — `phase=verify`
 
 Run the `verify` stage on every run — never skipped by tier. It builds the authoritative claim
 ledger in `_request_fact_check.md`: every claim in the request tagged
@@ -213,7 +213,7 @@ it: present the constraint and viable options with one recommendation, wait for 
 pick, and record it verbatim in `_design_feedback.md` so the architect treats it as settled.
 Otherwise set `state.phase="design"`.
 
-### 3. Design: subagents draft, then iterate with the human
+### 3. Design: subagents draft, then iterate with the human — `phase=design`
 
 **Draft.**
 - For `medium`/`large` complexity, first dispatch the `explorer` role (the
@@ -257,9 +257,10 @@ Otherwise set `state.phase="design"`.
 - For `trivial` complexity, don't interrogate: present the drafts and ask for objections — with
   none, the recommended answers stand as decisions and the gate proceeds with Open questions
   intact.
-- Otherwise done when **Open questions is empty and the human says they're happy**; then step 4.
+- Otherwise done when **Open questions is empty and the human says they're happy**; then
+  step 4 (Design gate).
 
-### 4. Design gate
+### 4. Design gate — `phase=design-gate`
 
 Do not edit source files until `.shepherd/_design.approved` exists. Set
 `state.phase="design-gate"`.
@@ -292,8 +293,8 @@ approving (a model change folds into this gate — not a new stop). Two outcomes
 `state.panel`, set `state.phase` to `"inner-loop"` (`"review-run"` when `state.review_only`),
 set `state.iteration=1`, and write `_design.approved` (the approval skill does exactly this).
 
-**Revise.** Any change request: do NOT write `_design.approved` — back to the step 3 iterate
-loop (feedback file + revision passes), re-present, wait. As many rounds as the human wants.
+**Revise.** Any change request: do NOT write `_design.approved` — back to the step 3 (Design)
+iterate loop (feedback file + revision passes), re-present, wait. As many rounds as the human wants.
 
 **Plan mode (any agent that has one — Claude Code, Cursor, Codex…).** With `plan_mode_gate=true`
 and plan tools available (`EnterPlanMode`/`ExitPlanMode`), mirror the FULL design + criteria +
@@ -302,9 +303,10 @@ Revise. On plan-tool error or unavailability, fall back to chat (paste everythin
 
 **Never self-approve.** Never infer approval from a plan-tool error, a plan-mode transition, or
 a "continue" message (see Hard rules); resume only once `_design.approved` exists. For a
-review-only run this gate approves the review scope; on approval go to step 8, not the inner loop.
+review-only run this gate approves the review scope; on approval go to step 8 (Review run),
+not the inner loop.
 
-### 5. Inner loop
+### 5. Inner loop — `phase=inner-loop`
 
 Use `state.panel`, not the raw roster; validate it against config. If absent (older run), fall
 back to the full roster and limits and record that in `_progress.md`.
@@ -346,16 +348,16 @@ For each iteration `N`:
 When converged, set `state.phase="final-review"` if the panel has final reviewers; otherwise set
 `state.phase="create-pr"`.
 
-### 6. Final review
+### 6. Final review — `phase=final-review`
 
 Run panel `final_reviewers` in parallel (same pasted-content rule, plus working-tree access).
 Any finding triggers a targeted implementer fix and a re-run of the final reviewers (and the
 regular reviewers too when the fix is broad), staying in `phase="final-review"`, bounded by
 `final_review_rounds`. Each fix round advances to the next free `iter-N` (claim, oracle run,
-diff, review files) — never overwrite an earlier round's files. When clean by the step 5
-convergence rule, set `state.phase="create-pr"`.
+diff, review files) — never overwrite an earlier round's files. When clean by the
+step 5 (Inner loop) convergence rule, set `state.phase="create-pr"`.
 
-### 7. Fulfillment + create-PR confirm
+### 7. Fulfillment + create-PR confirm — `phase=create-pr`
 
 On entering `phase="create-pr"`, dispatch the `fulfillment` stage: it judges the diff, tests,
 and claim against `3-success-criteria.md` and writes `iter-N/fulfillment.md` with each criterion
@@ -369,7 +371,7 @@ and claim against `3-success-criteria.md` and writes `iter-N/fulfillment.md` wit
   proceed only on a clear yes, which records `_create_pr.approved`. Headless runs use
   `/shepherd-approve-create-pr`. This approves creating the PR, not merging it.
 
-### 8. Review mode (review-only runs)
+### 8. Review run (review-only) — `phase=review-run`
 
 After the design gate approves the review scope, build `iter-1/diff.patch` from the branch
 under review (`git diff <base>...HEAD`), run `oracle.commands` on that checkout into
@@ -378,9 +380,9 @@ run the panel reviewers and final reviewers against it. Present a findings summa
 record it in `_progress.md`, and set `state.phase="done"` — a review-only run ends here, with
 no commit and no PR. **do NOT implement and do NOT merge.** If the human then asks to fix
 findings, reopen the same run: `state.phase="inner-loop"`, next free `iter-N`, normal loop
-from step 5.
+from step 5 (Inner loop).
 
-### 9. Finish
+### 9. Finish — `phase=create-pr` + `_create_pr.approved`, ends `phase=done`
 
 1. Re-check `git status --porcelain` (ignore `.shepherd/` and the paths in
    `iter-1/predirty.txt`); stop if unrelated changes are present.
@@ -421,4 +423,4 @@ from step 5.
   or the human explicitly accepts the exception.
 - A finding fixable only by changing the approved `2-design.md` / `3-success-criteria.md` is the
   human's call — surface it at the gate; never edit an approved artifact to silence a finding.
-- Commit/PR text: plain, PR-template-following, no obvious-from-the-diff narration (step 9).
+- Commit/PR text: plain, PR-template-following, no obvious-from-the-diff narration (step 9, Finish).

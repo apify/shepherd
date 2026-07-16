@@ -1,3 +1,5 @@
+import re
+
 from conftest import REPO_ROOT
 
 ORCH = (REPO_ROOT / ".claude/skills/shepherd/SKILL.md").read_text()
@@ -230,7 +232,7 @@ def test_fulfillment_check_gates_the_pr():
 
 def test_orchestrator_has_first_class_review_mode():
     # Review-only tasks skip implement, run the panel on the existing diff, stop at findings.
-    assert "Review mode" in ORCH
+    assert "Review run" in ORCH
     assert "review-only" in ORCH
     assert "do NOT implement" in ORCH
     # A follow-up fix run must not collide with the review-run artifacts.
@@ -312,3 +314,20 @@ def test_orchestrator_finish_writes_plain_commit_and_pr():
     assert "Alternatives considered" in ORCH
     assert "obvious from the diff" in ORCH
     assert "PR URL" in ORCH
+
+
+def test_step_references_name_their_target():
+    # Bare "step N" is ambiguous against numbered list items inside sections; every
+    # cross-reference must name its target: "step 4 (Design gate)" or "(step 9, Finish)".
+    # Dotted refs (step 5.3) are already unambiguous and exempt.
+    bare = re.findall(r"step \d+(?!\.\d)(?!\s*[(,])", ORCH)
+    assert bare == [], f"bare step references found: {bare}"
+
+
+def test_step_headings_declare_their_phase():
+    # Each procedure heading carries its _state.json phase so the prose vocabulary
+    # and the state machine stay one system.
+    headings = re.findall(r"^### \d+\..*$", ORCH, flags=re.M)
+    assert len(headings) == 9
+    missing = [h for h in headings if "`phase=" not in h]
+    assert missing == [], f"headings without a phase annotation: {missing}"
