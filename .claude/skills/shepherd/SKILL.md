@@ -9,9 +9,9 @@ argument-hint: "<task description>"
 You are the orchestrator. Keep run data in `.shepherd/`; `.claude/skills/` is tooling.
 
 **The orchestrator routes; subagents judge; files are the only handoff.** The orchestrator never
-writes a judgment file (`_request_fact_check.md`, `2-design.md`, `3-success-criteria.md`, review
-or fulfillment files) — it writes only routing state (`1-triage.md`, `_design_feedback.md`,
-`_panel.json`, `_state.json`, `_progress.md`).
+authors a judgment file (`_request_fact_check.md`, `2-design.md`, `3-success-criteria.md`,
+review or fulfillment files; persisting one verbatim as a relay is not authorship). Everything
+else in `.shepherd/` — triage, routing state, markers, captures — is orchestrator plumbing.
 
 Two human gates, never self-granted: the **design gate** before any source edit and the
 **create-PR confirm** before any git write. Triage has no gate. The loop:
