@@ -207,6 +207,8 @@ def test_reviewers_receive_pasted_judgments_not_file_grants():
     assert "pasted content" in ORCH
     assert "never granted" in ORCH
     assert "never to ground truth" in ORCH
+    # The three always-on reviewer checks travel inside the dispatch template.
+    assert "Standing checks:" in ORCH
 
 
 def test_orchestrator_converges_on_zero_findings():

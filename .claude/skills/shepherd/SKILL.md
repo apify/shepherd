@@ -124,14 +124,16 @@ Method line omitted. For stage key `K` with assignment `S`:
 > `.shepherd/` files. **Read:** {role.reads}. **Do NOT read:** {role.blind} — and keep
 > recursive searches out of `.shepherd/` entirely (`rg --glob '!.shepherd/**'`,
 > `grep -r --exclude-dir=.shepherd`); matching its content by accident is a blindness leak you
-> must disclose. **Method:** follow `{engine}` — scoped as: {scope}. **Write:** `{role.writes}`
-> in this format: {role.format}.
+> must disclose. **Method:** follow `{engine}` — scoped as: {scope}. **Standing checks:**
+> {role.standing} (reviewer and final-reviewer roles only; omit the line otherwise).
+> **Write:** `{role.writes}` in this format: {role.format}.
 
 If the dispatched agent has no write access, it returns the artifact verbatim as its final
 message and the orchestrator persists it to `{role.writes}` **unchanged** — a mechanical relay,
 not authorship; the no-judgment-files rule is not violated. Note the relay in `_progress.md`.
 
-Reviewer findings scope, regardless of what the design emphasizes, always includes three checks:
+`{role.standing}` for reviewer and final-reviewer roles always carries three checks, regardless
+of what the design emphasizes:
 committed code must not reference run-internal artifacts (`.shepherd/`, plan files, session
 paths); cruft preserved by a faithful migration is still a finding — "byte-identical"
 instructions cover assertions/behavior, not carried-over dead code; and a comment the diff adds,
