@@ -325,7 +325,8 @@ For each iteration `N`:
    later green runs are judged against these, not in isolation. Then, on every iteration, run
    the `implementer` stage: it applies `2-design.md` + `3-success-criteria.md`, addresses every
    prior finding, and writes `iter-N/claim.md`.
-3. Run `oracle.commands`; if empty, record and run the smallest credible inferred fallback. Use
+3. Run `oracle.commands`, capturing output to `iter-N/test-results.txt`; if empty, record and
+   run the smallest credible inferred fallback. Use
    finite, deterministic, non-mutating commands; avoid `dev`, `start`, `watch`, `lint:fix`,
    `format`, `clean`, inspectors, and eval workflows. If no credible command exists, the oracle
    is not green. Green alone is not green: compare the run against `iter-1/baseline.txt` — an
@@ -354,10 +355,11 @@ When converged, set `state.phase="final-review"` if the panel has final reviewer
 ### 6. Final review
 
 Run panel `final_reviewers` in parallel (same pasted-content rule, plus working-tree access).
-Any finding triggers a targeted implementer fix and a re-run of the final
-reviewers (and the regular reviewers too when the fix is broad), staying in
-`phase="final-review"`, bounded by `final_review_rounds`. When clean by the step 5 convergence
-rule, set `state.phase="create-pr"`.
+Any finding triggers a targeted implementer fix and a re-run of the final reviewers (and the
+regular reviewers too when the fix is broad), staying in `phase="final-review"`, bounded by
+`final_review_rounds`. Each fix round advances to the next free `iter-N` (claim, oracle run,
+diff, review files) — never overwrite an earlier round's files. When clean by the step 5
+convergence rule, set `state.phase="create-pr"`.
 
 ### 7. Fulfillment + create-PR confirm
 
@@ -376,8 +378,9 @@ and claim against `3-success-criteria.md` and writes `iter-N/fulfillment.md` wit
 ### 8. Review mode (review-only runs)
 
 After the design gate approves the review scope, build `iter-1/diff.patch` from the branch
-under review (`git diff <base>...HEAD`), set `state.phase="review-run"`, and run the panel
-reviewers and final reviewers against it. Present a findings summary in chat, record it in
+under review (`git diff <base>...HEAD`), run `oracle.commands` on that checkout into
+`iter-1/test-results.txt` (step 5.3 rules, no baseline), set `state.phase="review-run"`, and
+run the panel reviewers and final reviewers against it. Present a findings summary in chat, record it in
 `_progress.md`, and set `state.phase="done"` — a review-only run ends here, with no commit and
 no PR. **do NOT implement and do NOT merge.** If the human then asks to fix findings, reopen
 the same run: set `state.phase="inner-loop"`, continue at the next free `iter-N`, and run the

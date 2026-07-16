@@ -190,6 +190,8 @@ def test_orchestrator_has_complexity_rubric_with_numbers():
 def test_orchestrator_dispatches_reviewers_in_parallel():
     assert "parallel" in ORCH.lower()
     assert "final_reviewers" in ORCH
+    # Fix rounds get fresh iter-N dirs; earlier rounds' evidence is never clobbered.
+    assert "never overwrite an earlier round's files" in ORCH
 
 
 def test_dispatched_stages_run_non_interactively():
@@ -283,6 +285,8 @@ def test_orchestrator_documents_oracle_commands():
     assert "inferred fallback" in ORCH
     assert "non-mutating commands" in ORCH
     assert "lint:fix" in ORCH
+    # The oracle's output is the test-results.txt reviewers and fulfillment read.
+    assert "capturing output to `iter-N/test-results.txt`" in ORCH
 
 
 def test_orchestrator_documents_dirty_worktree_protection():
