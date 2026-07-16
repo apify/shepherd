@@ -310,10 +310,33 @@ def test_orchestrator_documents_dirty_worktree_protection():
 
 
 def test_orchestrator_finish_writes_plain_commit_and_pr():
-    # Plain PR body: what / how / alternatives, never obvious-diff narration.
-    assert "Alternatives considered" in ORCH
+    # Short PR body: template headings filled briefly, else ≤3 bullets; no essay / diff narration.
+    assert "three short bullets" in ORCH
+    assert "What / Why / Notes" in ORCH
     assert "obvious from the diff" in ORCH
+    assert "one short clause" in ORCH
     assert "PR URL" in ORCH
+
+
+def test_open_questions_are_real_decisions():
+    assert "real decisions only" in ORCH
+    assert "no filler" in ORCH
+    assert "no minimum or maximum" in ORCH
+    assert "Facts verifiable" in ORCH
+
+
+def test_design_iterate_grills_decisions():
+    assert "Grill decisions" in ORCH
+    assert "Look up facts yourself" in ORCH
+    assert "only decisions" in ORCH
+    assert "miss a real fork" in ORCH
+
+
+def test_standing_checks_include_ai_slop():
+    assert "comments longer than the" in ORCH
+    assert "abnormal defensive" in ORCH
+    assert "type-escape casts" in ORCH
+    assert "early returns" in ORCH
 
 
 def test_step_references_name_their_target():
