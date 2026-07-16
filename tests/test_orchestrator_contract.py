@@ -1,3 +1,5 @@
+import re
+
 from conftest import REPO_ROOT
 
 ORCH = (REPO_ROOT / ".claude/skills/shepherd/SKILL.md").read_text()
@@ -112,6 +114,8 @@ def test_design_iteration_uses_feedback_file_and_revision_passes():
     # Architect re-runs revise with prior context instead of re-drafting.
     assert "revision pass" in ORCH
     assert "every rewrite is a subagent's" in ORCH
+    # Trivial runs adopt recommended answers on "no objections" instead of a revision pass.
+    assert "recommended answers stand" in ORCH
 
 
 def test_explorer_writes_a_reused_codebase_map():
@@ -123,6 +127,8 @@ def test_orchestrator_selects_review_panel_at_design_gate():
     assert "state.panel" in ORCH
     assert "_panel.json" in ORCH
     assert "subset of the configured roster" in ORCH
+    # Pre-gate stages resolve auto at dispatch; the gate records them, humans edit post-gate picks.
+    assert "record of what ran" in ORCH
 
 
 def test_design_gate_approves_design_criteria_and_panel():
@@ -155,6 +161,8 @@ def test_orchestrator_tracks_resumable_phases():
     assert 'state.phase="create-pr"' in ORCH
     # A finished run is terminal; resume must not re-commit.
     assert 'state.phase="done"' in ORCH
+    # Resume before the marker must re-establish fulfillment, never assume the stop was earned.
+    assert "`phase=create-pr` without the marker" in ORCH
 
 
 def test_design_gate_wait_state_is_resumable():
@@ -172,6 +180,8 @@ def test_orchestrator_archives_previous_run_on_fresh_start():
 
 def test_setup_writes_run_gitignore():
     assert ".shepherd/.gitignore" in ORCH
+    # Humans may commit config.json/registry.json; shepherd never stages .shepherd/ paths.
+    assert "never stages" in ORCH
 
 
 def test_orchestrator_has_complexity_rubric_with_numbers():
@@ -184,6 +194,8 @@ def test_orchestrator_has_complexity_rubric_with_numbers():
 def test_orchestrator_dispatches_reviewers_in_parallel():
     assert "parallel" in ORCH.lower()
     assert "final_reviewers" in ORCH
+    # Fix rounds get fresh iter-N dirs; earlier rounds' evidence is never clobbered.
+    assert "never overwrite an earlier round's files" in ORCH
 
 
 def test_dispatched_stages_run_non_interactively():
@@ -197,13 +209,17 @@ def test_reviewers_receive_pasted_judgments_not_file_grants():
     assert "pasted content" in ORCH
     assert "never granted" in ORCH
     assert "never to ground truth" in ORCH
+    # The three always-on reviewer checks travel inside the dispatch template.
+    assert "Standing checks:" in ORCH
 
 
-def test_orchestrator_converges_on_severity():
-    # No open blocker/major; minor/nit fixed or skipped with a reason, skips shown at confirm.
+def test_orchestrator_converges_on_zero_findings():
+    # Every finding gets fixed, whatever its severity; nothing is skipped or deferred.
     assert "blocker" in ORCH and "major" in ORCH
-    assert "skipped with a specific reason" in ORCH
-    assert "every skipped finding with its reason" in ORCH
+    assert "every finding gets fixed" in ORCH
+    assert "never skips or defers" in ORCH
+    # Abandon is terminal: phase=done, and the tree is left for the human.
+    assert "On abandon" in ORCH
 
 
 def test_fulfillment_check_gates_the_pr():
@@ -216,11 +232,17 @@ def test_fulfillment_check_gates_the_pr():
 
 def test_orchestrator_has_first_class_review_mode():
     # Review-only tasks skip implement, run the panel on the existing diff, stop at findings.
-    assert "Review mode" in ORCH
+    assert "Review run" in ORCH
     assert "review-only" in ORCH
     assert "do NOT implement" in ORCH
     # A follow-up fix run must not collide with the review-run artifacts.
     assert "next free `iter-N`" in ORCH
+    # A finished review run is terminal; only an explicit human request reopens it.
+    assert "a review-only run ends here" in ORCH
+    # Review-only runs skip success criteria; the review scope is the whole contract.
+    assert "nothing gets built" in ORCH
+    # The PR branch is checked out at triage so verify/design/reviewers all read it.
+    assert "every later stage reads that checkout" in ORCH
 
 
 def test_orchestrator_accept_approves_revise_iterates_no_self_approve():
@@ -273,11 +295,16 @@ def test_orchestrator_documents_oracle_commands():
     assert "inferred fallback" in ORCH
     assert "non-mutating commands" in ORCH
     assert "lint:fix" in ORCH
+    # The oracle's output is the test-results.txt reviewers and fulfillment read.
+    assert "capturing output to `iter-N/test-results.txt`" in ORCH
 
 
 def test_orchestrator_documents_dirty_worktree_protection():
     assert "git status --porcelain" in ORCH
-    assert "pre-existing unrelated changes" in ORCH
+    # A dirty tree is allowed; pre-existing paths are recorded, kept out of
+    # the diff, and never committed.
+    assert "predirty.txt" in ORCH
+    assert "stay separable" in ORCH
     # The run's own .shepherd files must not trip the check.
     assert "ignore `.shepherd/`" in ORCH
 
@@ -287,3 +314,20 @@ def test_orchestrator_finish_writes_plain_commit_and_pr():
     assert "Alternatives considered" in ORCH
     assert "obvious from the diff" in ORCH
     assert "PR URL" in ORCH
+
+
+def test_step_references_name_their_target():
+    # Bare "step N" is ambiguous against numbered list items inside sections; every
+    # cross-reference must name its target: "step 4 (Design gate)" or "(step 9, Finish)".
+    # Dotted refs (step 5.3) are already unambiguous and exempt.
+    bare = re.findall(r"step \d+(?!\.\d)(?!\s*[(,])", ORCH)
+    assert bare == [], f"bare step references found: {bare}"
+
+
+def test_step_headings_declare_their_phase():
+    # Each procedure heading carries its _state.json phase so the prose vocabulary
+    # and the state machine stay one system.
+    headings = re.findall(r"^### \d+\..*$", ORCH, flags=re.M)
+    assert len(headings) == 9
+    missing = [h for h in headings if "`phase=" not in h]
+    assert missing == [], f"headings without a phase annotation: {missing}"

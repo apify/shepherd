@@ -5,7 +5,9 @@ stage, the deterministic oracle commands, and the iteration limits for review lo
 
 The active config is `.shepherd/config.json`. If it is missing, shepherd copies the
 default from `.claude/skills/shepherd/config.default.json`. A local
-`.shepherd/config.local.json` may override values for one environment.
+`.shepherd/config.local.json` shallow-overrides values for one environment. Shallow means
+top-level keys replace wholesale: a local `{"stages": …}` must repeat every stage it wants
+to keep, or the default reviewers vanish.
 
 ## Runtime files
 
@@ -42,8 +44,8 @@ one file and each role reads only what it needs, so context stays scoped and jud
 stay independent. The architect never reads `3-success-criteria.md`; the criteria author
 never sees the proposed solution; reviewers judge pasted content (design, criteria, diff,
 test output) while reading the repository itself for ground truth, and never see
-`claim.md` or each other's findings; fulfillment reads `claim.md` for the skip reasons but
-not the reviews. The orchestrator never writes a judgment file — human feedback lands verbatim
+`claim.md` or each other's findings; fulfillment reads `claim.md` for the claimed test
+deltas but not the reviews. The orchestrator never writes a judgment file — human feedback lands verbatim
 in `_design_feedback.md` and subagents fold it into their own files.
 
 Collapsing the files would either pollute role context or break that independence.
@@ -53,7 +55,7 @@ Collapsing the files would either pollute role context or break that independenc
 | Stage | Default | Reads | Writes |
 |---|---|---|---|
 | `verify` | built-in (optional engine) | `_user_request.md`, `1-triage.md`, codebase, issue | `_request_fact_check.md` |
-| `architect` | built-in (optional engine) | request, triage, fact check, `_codebase_map.md` if present, codebase; prior design + feedback on revision | `2-design.md` |
+| `architect` | built-in (optional engine) | request, triage, fact check, `_codebase_map.md` if present, feedback if present, codebase; prior design on revision | `2-design.md` |
 | `success_criteria` | built-in (optional engine) | pasted product sections of `2-design.md`, request, triage | `3-success-criteria.md` |
 | `implementer` | built-in (optional engine) | design, criteria, fact check, map, prior reviews | source edits, `claim.md` |
 | `reviewers` | `staff-review` | pasted design, criteria, diff, test output, repository (working tree, git history) | `review-<use>.md` |
@@ -104,8 +106,9 @@ Core/shared or public-contract changes are `medium` at minimum regardless of lin
 ## Model selection
 
 Each stage entry takes a `model`. `"auto"` (the default) lets shepherd pick per role and triage
-tier — `haiku` for a small transcription-style implementer, `sonnet` for verify/criteria/reviewers,
-`opus` for the architect and final reviewers — scaling up for `medium`/`large` and down for
+tier — `haiku` for a small transcription-style implementer, `sonnet` for
+verify/criteria/fulfillment/reviewers, `opus` for the architect and final reviewers — scaling up
+for `medium`/`large` and down for
 `trivial`/`small`. A concrete name (`opus`, `sonnet`, `haiku`) pins the stage and overrides auto.
 Single stages may be **model-only** (`{ "model": "..." }` with no `use`): built-in role behavior on
 that model. All `"auto"` picks are resolved and shown at the design gate, where you can adjust any
