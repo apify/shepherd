@@ -254,8 +254,10 @@ it verbatim in `_design_feedback.md` so the architect treats it as settled. Othe
 - Re-run the `architect` as a **revision pass** — it reads its previous `2-design.md` +
   `_design_feedback.md` and revises; it does not re-explore. Re-run `success_criteria` only
   when the product sections changed.
-- For `trivial` complexity, don't interrogate: present the drafts and ask for objections.
-- Done when **Open questions is empty and the human says they're happy**. Then go to step 4.
+- For `trivial` complexity, don't interrogate: present the drafts and ask for objections — with
+  none, the recommended answers stand as decisions and the gate proceeds with Open questions
+  intact.
+- Otherwise done when **Open questions is empty and the human says they're happy**; then step 4.
 
 ### 4. Design gate
 

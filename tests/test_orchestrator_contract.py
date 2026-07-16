@@ -112,6 +112,8 @@ def test_design_iteration_uses_feedback_file_and_revision_passes():
     # Architect re-runs revise with prior context instead of re-drafting.
     assert "revision pass" in ORCH
     assert "every rewrite is a subagent's" in ORCH
+    # Trivial runs adopt recommended answers on "no objections" instead of a revision pass.
+    assert "recommended answers stand" in ORCH
 
 
 def test_explorer_writes_a_reused_codebase_map():
