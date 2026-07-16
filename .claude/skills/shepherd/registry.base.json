@@ -41,7 +41,7 @@
     },
     "ponytail-review": {
       "roles": ["reviewer", "final_reviewer"],
-      "engine": "../_vendored/ponytail-review/SKILL.md",
+      "engine": "../_vendored/ponytail-review/ENGINE.md",
       "scope": "apply to the pasted diff; complexity/deletion lens only — correctness stays with the other reviewers. Judge every cut against the pasted 2-design.md: a cut that contradicts an approved decision or a stated behavior-preservation constraint is a human-call finding, not a recommendation. First line VERDICT: PASS|FAIL, then its one-line findings mapped to severities (delete/yagni → minor, shrink/doc-style → nit), keeping its net-lines metric at the end. Clarity outranks the line count: never propose nested ternaries, dense one-liners, or concern-merging as cuts — a cut that makes the code harder to read is not a finding"
     }
   }

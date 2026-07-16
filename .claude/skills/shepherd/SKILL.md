@@ -67,7 +67,7 @@ reliably type a slash-command. Surface everything they need into the conversatio
    `mkdir -p` it. If `.shepherd/.gitignore` is missing, write it: ignore `*` except
    `.gitignore`, `config.json`, `registry.json`.
 2. Fresh run: require a non-empty `<task>`. Write it verbatim to `.shepherd/_user_request.md`.
-   Initialize `_state.json`: `{"phase":"triage","iteration":0,"head_sha":"<git rev-parse HEAD>"}`.
+   Initialize `_state.json`: `{"phase":"triage","iteration":0}`.
 3. If `.shepherd/_state.json` exists, resume. If a new non-empty `<task>` differs from
    `_user_request.md`, ask continue vs fresh; on fresh — or when the previous run is
    `phase=done` — move the old run's files (all numbered/underscore files and `iter-*/`, keeping

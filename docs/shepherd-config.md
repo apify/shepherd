@@ -5,7 +5,9 @@ stage, the deterministic oracle commands, and the iteration limits for review lo
 
 The active config is `.shepherd/config.json`. If it is missing, shepherd copies the
 default from `.claude/skills/shepherd/config.default.json`. A local
-`.shepherd/config.local.json` may override values for one environment.
+`.shepherd/config.local.json` shallow-overrides values for one environment. Shallow means
+top-level keys replace wholesale: a local `{"stages": …}` must repeat every stage it wants
+to keep, or the default reviewers vanish.
 
 ## Runtime files
 
