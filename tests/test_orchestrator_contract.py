@@ -123,6 +123,8 @@ def test_orchestrator_selects_review_panel_at_design_gate():
     assert "state.panel" in ORCH
     assert "_panel.json" in ORCH
     assert "subset of the configured roster" in ORCH
+    # Pre-gate stages resolve auto at dispatch; the gate records them, humans edit post-gate picks.
+    assert "record of what ran" in ORCH
 
 
 def test_design_gate_approves_design_criteria_and_panel():
@@ -155,6 +157,8 @@ def test_orchestrator_tracks_resumable_phases():
     assert 'state.phase="create-pr"' in ORCH
     # A finished run is terminal; resume must not re-commit.
     assert 'state.phase="done"' in ORCH
+    # Resume before the marker must re-establish fulfillment, never assume the stop was earned.
+    assert "`phase=create-pr` without the marker" in ORCH
 
 
 def test_design_gate_wait_state_is_resumable():

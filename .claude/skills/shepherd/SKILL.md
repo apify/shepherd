@@ -104,6 +104,8 @@ Resume by phase:
 - `phase=design-gate` without the marker → re-present the design + panel (step 4) and wait.
 - `phase=inner-loop`, `final-review`, or `review-run` → continue that phase.
 - `phase=create-pr` + `_create_pr.approved` → go to step 9.
+- `phase=create-pr` without the marker → dispatch fulfillment first if the latest
+  `iter-N/fulfillment.md` is missing, then act on its verdict per step 7.
 - `phase=done` → the run is complete; report and stop.
 - Otherwise, re-announce the stop being waited on and stop.
 
@@ -157,11 +159,13 @@ claims, and comments restating the obvious are findings.
 `"auto"` (the shipped default) lets the orchestrator pick a model per role and triage tier; an
 explicit name (`opus`, `sonnet`, `haiku`) is used verbatim. Resolve `"auto"` as: `implementer` →
 `haiku` (`sonnet` for `medium`/`large` — a subtle change is not transcription); `verify`,
-`explorer`, `success_criteria`, `reviewer` → `sonnet`; `architect` → `opus` (`sonnet` for a
-revision pass — it folds feedback into an existing design without re-exploring); `final_reviewer` →
-`opus` (`sonnet` for `trivial`/`small`). `sonnet` is the floor for review — never `haiku`. Resolve
-every `"auto"` once at the design gate (step 4) so the human sees and can edit the picks; record
-them in `_panel.json` and dispatch from there.
+`explorer`, `success_criteria`, `fulfillment`, `reviewer` → `sonnet`; `architect` → `opus`
+(`sonnet` for a revision pass — it folds feedback into an existing design without re-exploring);
+`final_reviewer` → `opus` (`sonnet` for `trivial`/`small`). `sonnet` is the floor for review —
+never `haiku`. Pre-gate stages (verify, explorer, architect, success_criteria) resolve `"auto"`
+at dispatch time from this table. At the design gate (step 4), record all picks in
+`_panel.json`: the pre-gate ones as the record of what ran, the post-gate ones (implementer,
+reviewers, final reviewers, fulfillment) for the human to edit before approving.
 
 ## Procedure
 

@@ -104,8 +104,9 @@ Core/shared or public-contract changes are `medium` at minimum regardless of lin
 ## Model selection
 
 Each stage entry takes a `model`. `"auto"` (the default) lets shepherd pick per role and triage
-tier — `haiku` for a small transcription-style implementer, `sonnet` for verify/criteria/reviewers,
-`opus` for the architect and final reviewers — scaling up for `medium`/`large` and down for
+tier — `haiku` for a small transcription-style implementer, `sonnet` for
+verify/criteria/fulfillment/reviewers, `opus` for the architect and final reviewers — scaling up
+for `medium`/`large` and down for
 `trivial`/`small`. A concrete name (`opus`, `sonnet`, `haiku`) pins the stage and overrides auto.
 Single stages may be **model-only** (`{ "model": "..." }` with no `use`): built-in role behavior on
 that model. All `"auto"` picks are resolved and shown at the design gate, where you can adjust any
