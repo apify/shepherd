@@ -142,7 +142,7 @@ should be early returns, and other patterns inconsistent with the surrounding fi
 
 | role | reads | do NOT read | writes | format |
 |------|-------|-------------|--------|--------|
-| `verify` | `_user_request.md`, `1-triage.md`, codebase, referenced issue; **for a review-only run also the PR/branch description and its diff — treat that description as the claim source** | `2-design.md`, `3-success-criteria.md` | `_request_fact_check.md` | claim ledger: every request claim tagged `VALID \| STALE \| LIKELY-FIXED \| UNVERIFIABLE` with evidence, plus a one-line verdict — never empty |
+| `verify` | `_user_request.md`, `1-triage.md`, codebase, referenced issue, current upstream sources for any claim resting on facts outside the repo; **for a review-only run also the PR/branch description and its diff — treat that description as the claim source** | `2-design.md`, `3-success-criteria.md` | `_request_fact_check.md` | claim ledger: every request claim tagged `VALID \| STALE \| LIKELY-FIXED \| UNVERIFIABLE` with evidence (claims resting on facts outside the repo: check current upstream sources, not model memory), plus a one-line verdict — never empty |
 | `explorer` | codebase | `.shepherd/` internals | `_codebase_map.md` | ≤1 page: key files · patterns · data flow · risks |
 | `architect` | `_user_request.md`, `1-triage.md`, `_request_fact_check.md`, `_codebase_map.md` if present, `_design_feedback.md` if present (settled human decisions — constraints, not suggestions), codebase; on a revision pass also its previous `2-design.md` | `3-success-criteria.md` | `2-design.md` | the design template in step 3 (Design) |
 | `success_criteria` | pasted content of the "What we're solving" and "How it will work" sections of `2-design.md`, plus `_user_request.md`, `1-triage.md`, and `_request_fact_check.md` (verified facts — real paths, real coverage gaps — so criteria reference reality instead of guessing; it contains no solution) — nothing else | the rest of `2-design.md` (the solution), `claim.md` | `3-success-criteria.md` | numbered, testable criteria — each verifiable by a command or an observable behavior; no solution details |
@@ -171,7 +171,9 @@ reviewers, final reviewers, fulfillment) for the human to edit before approving.
 Orchestrator-owned cheap product screen — no dispatch, no deep code reading; a quick skim is
 fine. Write `.shepherd/1-triage.md` in about 12 lines:
 - Problem
-- Decision: `PROCEED | DEFER | DECLINE`
+- Decision: `PROCEED | DEFER | DECLINE` — DEFER an under-specified request (no determinable
+  problem or user-visible outcome) and put what's missing in Open questions; a clear problem
+  with an open solution still proceeds — design settles solutions, not triage
 - Complexity: `trivial | small | medium | large`
 - Review-only: `yes | no` — `yes` when the task is "review PR/branch/diff X" with nothing to build
 - Approach sketch, high level only

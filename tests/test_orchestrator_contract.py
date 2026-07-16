@@ -339,6 +339,16 @@ def test_standing_checks_include_ai_slop():
     assert "early returns" in ORCH
 
 
+def test_triage_defers_underspecified_requests():
+    assert "DEFER an under-specified request" in ORCH
+    assert "design settles solutions, not triage" in ORCH
+
+
+def test_verify_checks_external_spec_claims():
+    assert "facts outside the repo" in ORCH
+    assert "not model memory" in ORCH
+
+
 def test_step_references_name_their_target():
     # Bare "step N" is ambiguous against numbered list items inside sections; every
     # cross-reference must name its target: "step 4 (Design gate)" or "(step 9, Finish)".
