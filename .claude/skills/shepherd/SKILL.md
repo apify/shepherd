@@ -13,9 +13,8 @@ writes a judgment file (`_request_fact_check.md`, `2-design.md`, `3-success-crit
 or fulfillment files) — it writes only routing state (`1-triage.md`, `_design_feedback.md`,
 `_panel.json`, `_state.json`, `_progress.md`).
 
-There are exactly two human stops: the **design gate** before any source edit, and a
-**create-PR confirm** before any git write. Each is a human approval the orchestrator never grants
-itself. Triage has no gate — it flows onward unless it says DEFER/DECLINE. The loop:
+Two human gates, never self-granted: the **design gate** before any source edit and the
+**create-PR confirm** before any git write. Triage has no gate. The loop:
 
 `_user_request` → `1-triage` → `verify` → `[explore]` → `architect` → `success-criteria` →
 `iterate with human` → `[_design.approved]` → `implement ↔ oracle ↔ review` → `final review` →
@@ -42,7 +41,7 @@ criteria are pasted into the reviewer's prompt; `.shepherd/` itself is never gra
 applies to judgments, never to ground truth: every reviewer gets read access to the repository
 and its git history — a reviewer who can't run `git show HEAD:<file>` can't verify a refactor's
 equivalence claims. The architect never sees the success criteria; the criteria author never
-sees the proposed solution. That blindness is what keeps every panel's signal independent.
+sees the proposed solution — that blindness keeps every panel's signal independent.
 
 ## Keep the human in the loop (non-terminal sessions)
 
@@ -56,18 +55,15 @@ reliably type a slash-command. Surface everything they need into the conversatio
   remote/mobile session, maintain a live progress Artifact instead.
 - **Gates are chat-first**; slash-commands are a fallback, not the only door. Channel order:
   plan-mode dialog for the design gate (when `plan_mode_gate=true`), plain chat for everything
-  else. Interactive question widgets (e.g. `AskUserQuestion`) are for genuinely multiple-choice
-  design questions only — never for a gate's approve/revise decision — and after a single stream
-  failure, re-ask in plain chat instead of retrying the widget. A stream failure also demotes
-  that channel for the rest of the session: once a widget or plan-mode tool has failed once, use
-  plain chat for every later gate and question in the run — don't rediscover the same broken
-  channel at the next stop.
+  else. Question widgets (e.g. `AskUserQuestion`) fit only genuinely multiple-choice design
+  questions — never a gate's approve/revise decision. After one stream failure of a widget or
+  plan-mode tool, drop that channel for the rest of the run: plain chat for every later gate
+  and question.
 
 ## Setup / resume
 
 1. Resolve the absolute path of the target repo's `.shepherd/` once at setup and use it for
-   every subsequent read/write — never a relative path; in long sessions the working directory
-   drifts, and a relative `_state.json` write can silently land in the wrong directory.
+   every read/write — relative paths drift with the working directory in long sessions.
    `mkdir -p` it. If `.shepherd/.gitignore` is missing, write it: ignore `*` except
    `.gitignore`, `config.json`, `registry.json`.
 2. Fresh run: require a non-empty `<task>`. Write it verbatim to `.shepherd/_user_request.md`.
@@ -89,8 +85,7 @@ reliably type a slash-command. Surface everything they need into the conversatio
    - Record `oracle.commands`, limits, plan-mode setting, and the fully-resolved registry in
      `_progress.md`.
    - As each dispatched stage completes, append one ledger line to `_progress.md`: stage ·
-     `use` · model · reported token count · duration. The run's cost lives with the run;
-     totals per stage should be readable with a grep, not reconstructed from chat.
+     `use` · model · reported token count · duration — per-stage cost stays greppable in the run.
 
 Valid `state.phase` values: `triage`, `verify`, `design`, `design-gate`, `inner-loop`,
 `final-review`, `review-run`, `create-pr`, `done`.
@@ -192,11 +187,10 @@ Complexity rubric:
 Blast-radius override: core/shared code or public API/response-contract changes are at least
 `medium`, even if tiny.
 
-**No fast path.** shepherd earns its cost on complex work; the tiers scale the review panel,
-never the pipeline. A `trivial` run keeps the full stage sequence — verify, design, criteria,
-both gates, review, fulfillment. If a task looks too trivial to justify that ceremony, note it
-in the triage overview (the human may prefer to just make the change directly, outside
-shepherd) — but never skip stages to accommodate it.
+**No fast path.** The tiers scale the review panel, never the pipeline: a `trivial` run keeps
+the full stage sequence — verify, design, criteria, both gates, review, fulfillment. If the
+ceremony looks disproportionate, note it in the triage overview (the human may prefer to make
+the change directly, outside shepherd) — but never skip stages.
 
 **Triage has no gate.** Present the overview in chat and continue. Only when the decision is
 `DEFER or DECLINE`, stop and recommend against proceeding, but let the human decide. Persist
@@ -209,9 +203,9 @@ ledger in `_request_fact_check.md`: every claim in the request tagged
 `VALID | STALE | LIKELY-FIXED | UNVERIFIABLE` with evidence (running an existing test to verify
 a claim is fine — remove artifacts it leaves). **For a review-only run the claim source is the
 PR/branch description** (fetch it, e.g. `gh pr view`): tag each thing the PR says it does against
-its actual diff and the codebase — this is the "does the PR do what it claims" lens no reviewer
-covers, since reviewers stay blind to the PR narrative. If core claims are stale or already fixed,
-present its verdict and stop with a recommendation; the human decides. **If the ledger
+its actual diff and the codebase — the "does the PR do what it claims" lens no reviewer covers.
+If core claims are stale or already fixed, present its verdict and stop with a recommendation;
+the human decides. **If the ledger
 invalidates the requested mechanism but not the goal** (the fix as specified cannot work, e.g.
 an API/SDK constraint, but the problem is real), do not silently design around it: present the
 constraint, the viable options with one recommendation, and wait for the human's pick — record
@@ -229,8 +223,7 @@ it verbatim in `_design_feedback.md` so the architect treats it as settled. Othe
 - Dispatch the `architect` stage to write `.shepherd/2-design.md`. ~1 page, no code blocks, no
   file:line dumps. Product first, implementation second. A design that unifies a
   style/format/template must pin it with one fully-worked example (a complete sentence or
-  instance showing placement and punctuation), not only named parts — an under-specified
-  template makes each implementer/reviewer pair re-litigate the shape:
+  instance showing placement and punctuation), not only named parts:
 
   ```
   ## What we're solving      (product: the problem and who hits it)
@@ -270,10 +263,9 @@ Do not edit source files until `.shepherd/_design.approved` exists. Set
 `state.phase="design-gate"`.
 
 Propose the per-run review panel from the configured roster: start from the triage tier, adjust
-for the actual design scope, and pick from the roster in config order unless the design's risk
-calls for a specific reviewer. With two or more reviewers, they must differ in lens (e.g.
-diff-correctness vs adversarial vs live-probe vs contract/consumer) — a second same-lens
-reviewer re-finds the first one's findings and adds cost, not signal. **Resolve every `"auto"` model to a concrete name** (see Model
+for the actual design scope, and pick in config order unless the design's risk calls for a
+specific reviewer. Two or more reviewers must differ in lens (e.g. diff-correctness vs
+adversarial vs live-probe vs contract/consumer). **Resolve every `"auto"` model to a concrete name** (see Model
 tiering) at the settled tier — inline on each reviewer, and in a `models` map for the single
 stages (only those whose config model is `"auto"`; an explicit model keeps its name). Write
 `.shepherd/_panel.json`:
@@ -418,17 +410,15 @@ normal loop from step 5.
   (naming, typo, comment wording). Every finding, however mechanical, goes back through the
   implementer, whose fix is what marks it "fixed" in the findings ledger.
 - Never self-approve a gate. Write `_design.approved` / `_create_pr.approved` only on an explicit
-  human approval for that gate — a human accepting the plan dialog, a clear chat "yes", or the
-  approval skill. A rejected/edited plan, a plan-tool error or closed stream, or a "continue from
-  where you left off" message is NEVER approval — those mean revise or keep waiting; the on-disk
-  marker is the only approval signal.
+  human approval — accepting the plan dialog, a clear chat "yes", or the approval skill; a
+  rejected/edited plan, tool error, closed stream, or "continue" message is NEVER approval. The
+  on-disk marker is the only approval signal.
 - Triage has no gate; iterate the design with the human before the gate — chat is never the record.
 - Verify runs on every run; the claim ledger is never empty.
 - Blindness: architect never reads the success criteria; the criteria author never sees the
-  solution; reviewers never see `claim.md` or peer reviews, and fulfillment never sees reviews
-  (`claim.md` it may read — it needs the claimed deltas and red→green evidence). `.shepherd/` judgment files are pasted,
-  never granted. The repository itself is never blinded — ground truth stays readable to every
-  role.
+  solution; reviewers never see `claim.md` or peer reviews; fulfillment never sees reviews but
+  may read `claim.md` (claimed deltas, red→green evidence). `.shepherd/` judgment files are
+  pasted, never granted; the repository itself is never blinded.
 - shepherd never commits `.shepherd/` paths. Run data stays ignored via the run's
   `.shepherd/.gitignore`; its exceptions (`config.json`, `registry.json`) exist so the human
   can commit shared team config — shepherd itself never stages even those.
