@@ -94,7 +94,7 @@ Core/shared or public-contract changes are `medium` at minimum regardless of lin
     "reviewers": [{ "use": "staff-review", "model": "auto" }],
     "final_reviewers": [
       { "use": "thermonuclear", "model": "auto" },
-      { "use": "ponytail-review", "model": "auto" }
+      { "use": "ponytail-review", "model": "sonnet" }
     ]
   },
   "oracle": { "commands": [] },
@@ -113,6 +113,15 @@ for `medium`/`large` and down for
 Single stages may be **model-only** (`{ "model": "..." }` with no `use`): built-in role behavior on
 that model. All `"auto"` picks are resolved and shown at the design gate, where you can adjust any
 before approving.
+
+Auto is also adaptive across the loop: on a fix pass (iteration ≥2 with only minor/nit findings
+open and no design-level change) an auto-resolved implementer drops one tier, bumping back if a
+finding survives its round; explicitly pinned models never drop, and reviewer models never change
+mid-loop, so the verdict that ends the loop is never issued by a weaker judge than the one that
+raised the findings. The shipped default pins `ponytail-review` to `sonnet`: a one-line
+deletion/leanness lens doesn't earn `opus`, while `sonnet` keeps the review floor — under
+zero-findings convergence a hallucinated nit costs a full fix round, so review never drops to
+`haiku`.
 
 `oracle.commands` should be finite and non-mutating. Good defaults for JS/TS repos are:
 
