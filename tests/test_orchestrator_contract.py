@@ -15,7 +15,7 @@ def test_orchestrator_reads_config_and_registry():
 
 def test_orchestrator_skill_stays_compact():
     # Keep the orchestrator readable, but do not force removal of operational guidance.
-    assert len(ORCH.splitlines()) <= 450
+    assert len(ORCH.splitlines()) <= 500
 
 
 def test_orchestrator_documents_per_reviewer_files():
@@ -364,3 +364,26 @@ def test_step_headings_declare_their_phase():
     assert len(headings) == 9
     missing = [h for h in headings if "`phase=" not in h]
     assert missing == [], f"headings without a phase annotation: {missing}"
+
+
+def test_standing_checks_cover_new_arms_and_disclosure():
+    assert "test-exercised on both sides" in ORCH
+    assert "input classes the old path handled" in ORCH
+    assert "silently invert" in ORCH
+    assert "conventions doc" in ORCH
+
+
+def test_scope_split_and_followups_ledger():
+    assert "## Scope split" in ORCH
+    assert "Prerequisite refactor" in ORCH
+    assert "explicit gate decision" in ORCH
+    assert "followups.md" in ORCH
+    assert "pre-existing" in ORCH
+    assert "never instructs reviewers not to report" in ORCH
+    assert "only on human approval" in ORCH
+    assert "never an issue without approval" in ORCH
+
+
+def test_pr_body_claims_are_verified():
+    assert "must match the final oracle run" in ORCH
+    assert "stale count or nonexistent reference" in ORCH
