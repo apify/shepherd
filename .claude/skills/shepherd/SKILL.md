@@ -168,7 +168,11 @@ explicit name (`opus`, `sonnet`, `haiku`) is used verbatim. Resolve `"auto"` as:
 `final_reviewer` → `opus` (`sonnet` for `trivial`/`small`). `sonnet` is the floor for review —
 never `haiku`. The panel never resolves entirely onto the implementer's model: keep at least one
 reviewer — and one final reviewer when the panel has any — on a different model, because a judge
-sharing the generator's model favors its output (self-preference bias). Pre-gate stages (verify, explorer, architect, success_criteria) resolve `"auto"`
+sharing the generator's model favors its output (self-preference bias). On a fix pass —
+iteration ≥2 with only `minor`/`nit` findings open and no design-level change — an auto-resolved
+implementer drops one tier (`sonnet` → `haiku`); a finding that survives its fix round bumps it
+back. An explicit config model never drops. Reviewer models never change mid-loop — the PASS
+that ends the loop must not come from a weaker judge than the FAIL that opened it. Pre-gate stages (verify, explorer, architect, success_criteria) resolve `"auto"`
 at dispatch time from this table. At step 4 (Design gate), record all picks in
 `_panel.json`: the pre-gate ones as the record of what ran, the post-gate ones (implementer,
 reviewers, final reviewers, fulfillment) for the human to edit before approving.

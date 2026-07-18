@@ -364,3 +364,14 @@ def test_review_panel_never_matches_implementer_model_entirely():
 
 def test_pr_body_scales_with_diff():
     assert "mechanism and known limitations" in ORCH
+
+
+def test_implementer_fix_pass_is_adaptive_but_judges_are_stable():
+    # Iteration >=2 fix rounds are transcription-like, so auto drops the implementer a tier;
+    # judges keep verdict continuity — the converging PASS never comes from a weaker model.
+    assert "On a fix pass" in ORCH
+    assert "drops one tier" in ORCH
+    assert "bumps it" in ORCH
+    assert "An explicit config model never drops" in ORCH
+    assert "never change mid-loop" in ORCH
+    assert "weaker judge" in ORCH

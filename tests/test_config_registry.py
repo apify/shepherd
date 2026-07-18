@@ -58,3 +58,10 @@ def test_reviewer_without_use_reported():
     bad["stages"]["reviewers"] = [{"model": "sonnet"}]
     errs = validate(bad, REGISTRY)
     assert any("reviewers" in e and "use" in e for e in errs)
+
+
+def test_default_config_pins_ponytail_to_sonnet():
+    # A one-line deletion lens doesn't earn opus; sonnet stays the review floor because
+    # under zero-findings convergence a hallucinated nit costs a full fix round.
+    finals = {e["use"]: e.get("model") for e in load_json(CONFIG)["stages"]["final_reviewers"]}
+    assert finals["ponytail-review"] == "sonnet"
