@@ -211,8 +211,11 @@ switch) — every later stage reads that checkout. Then set `state.phase="verify
 
 ### 2. Verify — `phase=verify`
 
-Run the `verify` stage on every run — never skipped by tier. It builds the authoritative claim
-ledger in `_request_fact_check.md`: every claim in the request tagged
+Run the `verify` stage on every run — never skipped by tier. On a fresh run whose archived
+predecessor targets the same repo and base commit, verify may run in delta mode: re-check only
+claims whose subject changed (new decisions, moved code, upstream PR state), re-affirming the
+rest against the archived ledger with a citation — narrowed, never skipped. It builds the
+authoritative claim ledger in `_request_fact_check.md`: every claim in the request tagged
 `VALID | STALE | LIKELY-FIXED | UNVERIFIABLE` with evidence (running an existing test to verify
 a claim is fine — remove artifacts it leaves). **For a review-only run the claim source is the
 PR/branch description** (fetch it, e.g. `gh pr view`): tag each thing the PR says it does against
@@ -254,10 +257,15 @@ Otherwise set `state.phase="design"`.
   many decisions as the design needs, no minimum or maximum.
 
   Scope split partitions the work: This PR (what the diff will contain), Prerequisite refactor
-  (restructuring the change needs — lands first as its own PR), Follow-ups (adjacent debt or
-  gaps found during exploration that this PR deliberately leaves). A non-empty Prerequisite
-  refactor is an explicit gate decision: surface it to the human and proceed only on their
-  confirmed choice — deliver the prerequisite first, or fold it in.
+  (restructuring the change needs — lands first, as its own PR, never as a commit inside the
+  main PR), Follow-ups (adjacent debt or gaps found during exploration that this PR
+  deliberately leaves). Before declaring Prerequisite refactor empty, check the repo's
+  refactor-separation policy (CLAUDE.md / CONTRIBUTING): where the repo mandates
+  refactor-lands-first, any "refactor first, then the change" structure IS a non-empty
+  prerequisite — calling it internal commit sequencing is a design defect. A non-empty
+  Prerequisite refactor is an explicit gate decision: surface it to the human and proceed only
+  on their confirmed choice — deliver the prerequisite first, or (only on the human's explicit
+  pick, never as the default) fold it in.
 
   For a review-only run, `2-design.md` is the review scope: what to check and which reviewers.
 - Dispatch the `success_criteria` stage: paste it ONLY the two product sections of the design
@@ -269,8 +277,10 @@ Otherwise set `state.phase="design"`.
 **Iterate — the conversation is the orchestrator's; every rewrite is a subagent's.**
 - Present the FULL `2-design.md` + `3-success-criteria.md` (see "Keep the human in the loop").
 - Grill decisions one question at a time (wait for each answer): options + your recommended
-  answer; product questions first, implementation after. Look up facts yourself; only decisions
-  go to the human. Walk dependencies in order — if Open questions miss a real fork, ask it.
+  answer; product questions first, implementation after. Look up facts yourself — including the
+  repo's conventions doc for any naming/signature/parameter question; a convention that settles
+  the question is a fact, not a human decision. Only decisions go to the human. Walk
+  dependencies in order — if Open questions miss a real fork, ask it.
   YAGNI — cut speculative scope.
 - **Batch a round of answers**, then append them verbatim to `_design_feedback.md`
   (append-only; the orchestrator writes only this file, never the design or criteria).
@@ -291,7 +301,11 @@ Do not edit source files until `.shepherd/_design.approved` exists. Set
 Propose the per-run review panel from the configured roster: start from the triage tier, adjust
 for the actual design scope, and pick in config order unless the design's risk calls for a
 specific reviewer. Two or more reviewers must differ in lens (e.g. diff-correctness vs
-adversarial vs live-probe vs contract/consumer). **Resolve every `"auto"` model to a concrete name** (see Model
+adversarial vs live-probe vs contract/consumer). At every human gate, present the panel with a
+one-line lens-fit assessment per reviewer — is the lens live for this design, or structurally
+muted by it (e.g. a complexity/deletion lens on a behavior-preserving move that forbids cuts)?
+— and invite roster/model changes; the orchestrator never edits the panel itself, and a panel
+change folds into the gate, not a new stop. **Resolve every `"auto"` model to a concrete name** (see Model
 tiering) at the settled tier — inline on each reviewer, and in a `models` map for the single
 stages (only those whose config model is `"auto"`; an explicit model keeps its name). Write
 `.shepherd/_panel.json`:
@@ -397,7 +411,13 @@ disposition per item.
   followups ledger verbatim, oracle status, reviewer verdicts, fixed findings, `git diff --stat`.
   The human dispositions each ledger item: `fix-here` reopens the inner loop; `issue` is created
   only now, on this approval; `pr-note` lands in the PR body; `drop` is recorded in
-  `_progress.md`. Never silent; never an issue without approval. Ask **"commit & open PR?"** and
+  `_progress.md`. Never silent; never an issue without approval. When every fix-here item is
+  doc/comment/style-only with no behavior or signature change (combined ≤10 lines), propose —
+  in the same gate exchange, with each option's cost — converging that fix round via ONE
+  delta-focused panel reviewer plus a fulfillment-delta check instead of the full panel; the
+  human's reply picks the mode, and any finding, oracle delta, or out-of-scope change in a
+  light round escalates back to the full step 5 (Inner loop) convergence rule. Ask
+  **"commit & open PR?"** and
   proceed only on a clear yes, which records `_create_pr.approved`. Headless runs use
   `/shepherd-approve-create-pr`. This approves creating the PR, not merging it.
 

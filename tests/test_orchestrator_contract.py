@@ -328,7 +328,8 @@ def test_open_questions_are_real_decisions():
 def test_design_iterate_grills_decisions():
     assert "Grill decisions" in ORCH
     assert "Look up facts yourself" in ORCH
-    assert "only decisions" in ORCH
+    assert "Only decisions go to the human" in ORCH
+    assert "a convention that settles" in ORCH
     assert "miss a real fork" in ORCH
 
 
@@ -377,6 +378,8 @@ def test_scope_split_and_followups_ledger():
     assert "## Scope split" in ORCH
     assert "Prerequisite refactor" in ORCH
     assert "explicit gate decision" in ORCH
+    assert "refactor-separation" in ORCH
+    assert "never as the default" in ORCH
     assert "followups.md" in ORCH
     assert "pre-existing" in ORCH
     assert "never instructs reviewers not to report" in ORCH
@@ -387,3 +390,19 @@ def test_scope_split_and_followups_ledger():
 def test_pr_body_claims_are_verified():
     assert "must match the final oracle run" in ORCH
     assert "stale count or nonexistent reference" in ORCH
+
+
+def test_verify_delta_mode_on_rerun():
+    assert "delta mode" in ORCH
+    assert "narrowed, never skipped" in ORCH
+
+
+def test_gate_panel_lens_fit_nudge():
+    assert "lens-fit assessment" in ORCH
+    assert "never edits the panel itself" in ORCH
+
+
+def test_light_rereview_for_trivial_fix_here():
+    assert "delta-focused panel reviewer plus a fulfillment-delta check" in ORCH
+    assert "picks the mode" in ORCH
+    assert "escalates back to the full step 5" in ORCH
