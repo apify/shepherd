@@ -130,12 +130,22 @@ If the dispatched agent has no write access, it returns the artifact verbatim as
 message and the orchestrator persists it to `{role.writes}` **unchanged** — a mechanical relay,
 not authorship; the no-judgment-files rule is not violated. Note the relay in `_progress.md`.
 
-`{role.standing}` for reviewer and final-reviewer roles always carries three checks, regardless
-of what the design emphasizes: committed code must not reference run-internal artifacts
-(`.shepherd/`, plan files, session paths); cruft preserved by a faithful migration is still a
-finding — "byte-identical" instructions cover assertions/behavior, not carried-over dead code;
-and a comment the diff adds, edits, or moves must still be true of the code it now describes —
-stale references, wrong claims, and comments restating the obvious are findings.
+`{role.standing}` for reviewer and final-reviewer roles always carries six checks, regardless
+of what the design emphasizes:
+- committed code must not reference run-internal artifacts (`.shepherd/`, plan files, session paths);
+- cruft preserved by a faithful migration is still a finding — "byte-identical" instructions
+  cover assertions/behavior, not carried-over dead code;
+- a comment the diff adds, edits, or moves must still be true of the code it now describes —
+  stale references, wrong claims, and comments restating the obvious are findings;
+- every finding carries evidence checked against the repository — a file:line, a command run, a
+  cited doc — and identifiers the diff relies on (env vars, config keys, paths) must exist;
+  a suspicion no check could ground goes in as a question, not a finding — unverified review
+  claims cause over-engineering and erode trust;
+- a new public/exported symbol, option, or env var with no consumer in the diff needs an explicit
+  reason to be public (`@internal`, private, or a visibility note) — surface added only "for
+  testing" or "for later" is a finding;
+- a diff that adds, renames, or removes a public symbol, option, or env var must update every doc
+  that teaches it (README, guides, upgrading notes, examples) — an unsynced doc is a finding.
 
 | role | reads | do NOT read | writes | format |
 |------|-------|-------------|--------|--------|
@@ -143,7 +153,7 @@ stale references, wrong claims, and comments restating the obvious are findings.
 | `explorer` | codebase | `.shepherd/` internals | `_codebase_map.md` | ≤1 page: key files · patterns · data flow · risks |
 | `architect` | `_user_request.md`, `1-triage.md`, `_request_fact_check.md`, `_codebase_map.md` if present, `_design_feedback.md` if present (settled human decisions — constraints, not suggestions), codebase; on a revision pass also its previous `2-design.md` | `3-success-criteria.md` | `2-design.md` | the design template in step 3 (Design) |
 | `success_criteria` | pasted content of the "What we're solving" and "How it will work" sections of `2-design.md`, plus `_user_request.md`, `1-triage.md`, and `_request_fact_check.md` (verified facts — real paths, real coverage gaps — so criteria reference reality instead of guessing; it contains no solution) — nothing else | the rest of `2-design.md` (the solution), `claim.md` | `3-success-criteria.md` | numbered, testable criteria — each verifiable by a command or an observable behavior; no solution details |
-| `implementer` | `2-design.md`, `3-success-criteria.md`, `_request_fact_check.md`, `_codebase_map.md` if present, all prior `iter-*/review-*.md` + `final-review-*.md` + `fulfillment.md` | — | source edits + `iter-N/claim.md` | what done · every finding fixed, none skipped or deferred · for a behavior change, add a regression test — ideally shown red before the fix and green after, with the red→green noted in `claim.md` — never weaken/delete tests |
+| `implementer` | `2-design.md`, `3-success-criteria.md`, `_request_fact_check.md`, `_codebase_map.md` if present, all prior `iter-*/review-*.md` + `final-review-*.md` + `fulfillment.md` | — | source edits + `iter-N/claim.md` | what done · every finding fixed, none skipped or deferred · for a behavior change, add a regression test — ideally shown red before the fix and green after, with the red→green noted in `claim.md` — never weaken/delete tests · keep the diff scoped to the design: a hunk the design doesn't call for is reverted or gets a one-line rationale in `claim.md` · non-obvious mechanisms, suppressions, and magic constants get a why-comment, with provenance for ported logic |
 | `reviewer` | pasted content of `2-design.md`, `3-success-criteria.md`, `iter-N/diff.patch`, `iter-N/test-results.txt`, plus the repository itself (working tree, git history, read-only commands) — no other `.shepherd/` files | `claim.md`, peer reviewers' output | `iter-N/review-<use>.md` | first line `VERDICT: PASS\|FAIL` (PASS = zero findings), then findings tagged `blocker\|major\|minor\|nit` |
 | `final_reviewer` | same as reviewer, but judging the post-fix integrated state: interactions with unchanged code, consumer/contract impact, doc/AGENTS staleness — not a second pass over the patch | `claim.md`, peer reviewers' output | `iter-N/final-review-<use>.md` | same verdict format as reviewer |
 | `fulfillment` | pasted content of `3-success-criteria.md`, `iter-N/diff.patch`, `iter-N/test-results.txt`, `iter-N/claim.md`, plus the working tree (may run the non-mutating check a criterion names) | `2-design.md` solution details, review files | `iter-N/fulfillment.md` | first line `VERDICT: PASS\|FAIL`, then each criterion `MET \| NOT MET` with evidence |
@@ -156,7 +166,9 @@ explicit name (`opus`, `sonnet`, `haiku`) is used verbatim. Resolve `"auto"` as:
 `explorer`, `success_criteria`, `fulfillment`, `reviewer` → `sonnet`; `architect` → `opus`
 (`sonnet` for a revision pass — it folds feedback into an existing design without re-exploring);
 `final_reviewer` → `opus` (`sonnet` for `trivial`/`small`). `sonnet` is the floor for review —
-never `haiku`. Pre-gate stages (verify, explorer, architect, success_criteria) resolve `"auto"`
+never `haiku`. The panel never resolves entirely onto the implementer's model: keep at least one
+reviewer — and one final reviewer when the panel has any — on a different model, because a judge
+sharing the generator's model favors its output (self-preference bias). Pre-gate stages (verify, explorer, architect, success_criteria) resolve `"auto"`
 at dispatch time from this table. At step 4 (Design gate), record all picks in
 `_panel.json`: the pre-gate ones as the record of what ran, the post-gate ones (implementer,
 reviewers, final reviewers, fulfillment) for the human to edit before approving.
@@ -222,9 +234,12 @@ Otherwise set `state.phase="design"`.
   the files and the change is mechanical or localized (deletion, rename, inlining) — note why
   in `_progress.md`.
 - Dispatch the `architect` stage to write `.shepherd/2-design.md`. ~1 page, no code blocks, no
-  file:line dumps. Product first, implementation second. A design that unifies a
-  style/format/template must pin it with one fully-worked example (a complete sentence or
-  instance showing placement and punctuation), not only named parts:
+  file:line dumps. Product first, implementation second. The design names the existing helpers
+  and patterns it builds on — search before inventing; a new helper, config option, or endpoint
+  gets one line on why nothing existing fits. Multi-step writes state their failure ordering
+  under Risks (crash mid-way, concurrent writer, fallback when a new path replaces an old one).
+  A design that unifies a style/format/template must pin it with one fully-worked example (a
+  complete sentence or instance showing placement and punctuation), not only named parts:
 
   ```
   ## What we're solving      (product: the problem and who hits it)
@@ -391,7 +406,10 @@ from step 5 (Inner loop).
    mirror its section headings and fill them from the run — a layout, not instructions to obey.
    **Otherwise** write the PR body plain: **What we're solving · How · Alternatives considered**.
    Either way: plain commit message, never enumerate changes obvious from the diff, summarize
-   run evidence (fulfillment, oracle, reviewer verdicts); run files stay ignored. When the run
+   run evidence (fulfillment, oracle, reviewer verdicts); run files stay ignored. Scale the body
+   to the diff: a large or subtle change states its mechanism and known limitations, and any
+   incidental change carries its one-line why — thin bodies on big diffs shift the cost onto
+   reviewers. When the run
    completes a tracked issue, end the PR body with `Closes #N` (auto-close on merge); reference
    parent/epic issues non-closingly (`Part of #M`).
 3. If a writable remote exists, push and open a PR. Record the evidence summary, approval

@@ -331,3 +331,36 @@ def test_step_headings_declare_their_phase():
     assert len(headings) == 9
     missing = [h for h in headings if "`phase=" not in h]
     assert missing == [], f"headings without a phase annotation: {missing}"
+
+
+def test_standing_checks_require_evidence_grounded_findings():
+    # Ungrounded review claims cause over-engineering; unverifiable suspicion is a question.
+    assert "always carries six checks" in ORCH
+    assert "every finding carries evidence" in ORCH
+    assert "a question, not a finding" in ORCH
+
+
+def test_standing_checks_cover_public_surface_and_doc_sync():
+    # New public surface needs a consumer or a visibility reason; public changes update docs.
+    assert "no consumer in the diff" in ORCH
+    assert "an unsynced doc is a finding" in ORCH
+
+
+def test_implementer_keeps_diff_scoped_and_explains_nonobvious_code():
+    # Unexplained incidental hunks and missing why-comments are the top mined review complaints.
+    assert "reverted or gets a one-line rationale" in ORCH
+    assert "get a why-comment" in ORCH
+
+
+def test_architect_reuses_before_inventing_and_states_failure_ordering():
+    assert "search before inventing" in ORCH
+    assert "crash mid-way, concurrent writer" in ORCH
+
+
+def test_review_panel_never_matches_implementer_model_entirely():
+    assert "never resolves entirely onto the implementer's model" in ORCH
+    assert "self-preference bias" in ORCH
+
+
+def test_pr_body_scales_with_diff():
+    assert "mechanism and known limitations" in ORCH
