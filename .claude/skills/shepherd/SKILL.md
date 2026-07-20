@@ -79,7 +79,8 @@ reliably type a slash-command. Surface everything they need into the conversatio
    - Resolve `registry.base.json` plus optional `.shepherd/registry.json` `uses`.
    - Validate every configured `use` against `registry.stage_roles` and `registry.uses`; no
      duplicate `use` inside `reviewers` or `final_reviewers`. Single stages (`verify`,
-     `architect`, `implementer`, `success_criteria`, `fulfillment`) may be absent from config.
+     `architect`, `implementer`, `success_criteria`, `fulfillment`, `followups`) may be absent
+     from config.
    - Record `oracle.commands`, limits, plan-mode setting, and the fully-resolved registry in
      `_progress.md`.
    - As each dispatched stage completes, append one ledger line to `_progress.md`: stage ·
@@ -97,8 +98,9 @@ Resume by phase:
 - `phase=design-gate` without the marker → re-present the design + panel (step 4, Design gate) and wait.
 - `phase=inner-loop`, `final-review`, or `review-run` → continue that phase.
 - `phase=create-pr` + `_create_pr.approved` → go to step 9 (Finish).
-- `phase=create-pr` without the marker → dispatch fulfillment first if the latest
-  `iter-N/fulfillment.md` is missing, then act on its verdict per step 7 (Fulfillment).
+- `phase=create-pr` without the marker → dispatch either fulfillment or followups if its latest
+  artifact (`iter-N/fulfillment.md` or `iter-N/followups.md`) is missing, then act on their
+  verdicts per step 7 (Fulfillment).
 - `phase=done` → the run is complete; report and stop.
 - Otherwise, re-announce the stop being waited on and stop.
 
@@ -138,13 +140,13 @@ a comment the diff adds, edits, or moves must still be true of the code it now d
 stale references, wrong claims, comments restating the obvious, and comments longer than the
 code they describe are findings; also flag AI-slop — abnormal defensive try/catch (defensive
 code at trust boundaries is fine), type-escape casts (`any` or equivalent), deep nesting that
-should be early returns, and other patterns inconsistent with the surrounding file.
-Three more: a conditional branch or guard the diff adds must be test-exercised on both sides,
-and a rewritten path exercised against the input classes the old path handled — an untested new
-arm is a finding; a behavior delta versus design or base that the design leaves unstated is a
-finding, including a changed helper whose default/no-arg semantics silently invert; and whatever
-the diff names, places, or exports must follow the repo's stated conventions doc, a new module
-importing no heavier layer than its role needs.
+should be early returns, and other patterns inconsistent with the surrounding file. Also require
+these three checks: a conditional branch or guard the diff adds must be test-exercised on both
+sides, and a rewritten path must be exercised against the input classes the old path handled —
+an untested new arm is a finding; a behavior delta versus design or base that the design leaves
+unstated is a finding, including a changed helper whose default/no-arg semantics silently invert;
+and whatever the diff names, places, or exports must follow the repo's stated conventions doc,
+with a new module importing no heavier layer than its role needs.
 
 | role | reads | do NOT read | writes | format |
 |------|-------|-------------|--------|--------|
@@ -169,7 +171,7 @@ explicit name (`opus`, `sonnet`, `haiku`) is used verbatim. Resolve `"auto"` as:
 never `haiku`. Pre-gate stages (verify, explorer, architect, success_criteria) resolve `"auto"`
 at dispatch time from this table. At step 4 (Design gate), record all picks in
 `_panel.json`: the pre-gate ones as the record of what ran, the post-gate ones (implementer,
-reviewers, final reviewers, fulfillment) for the human to edit before approving.
+reviewers, final reviewers, fulfillment, followups) for the human to edit before approving.
 
 ## Procedure
 
@@ -302,9 +304,9 @@ Propose the per-run review panel from the configured roster: start from the tria
 for the actual design scope, and pick in config order unless the design's risk calls for a
 specific reviewer. Two or more reviewers must differ in lens (e.g. diff-correctness vs
 adversarial vs live-probe vs contract/consumer). At every human gate, present the panel with a
-one-line lens-fit assessment per reviewer — is the lens live for this design, or structurally
-muted by it (e.g. a complexity/deletion lens on a behavior-preserving move that forbids cuts)?
-— and invite roster/model changes; the orchestrator never edits the panel itself, and a panel
+one-line lens-fit assessment per reviewer stating whether the lens is live for this design or
+structurally muted (e.g. a complexity/deletion lens on a behavior-preserving move that forbids
+cuts), and invite roster/model changes; the orchestrator never edits the panel itself, and a panel
 change folds into the gate, not a new stop. **Resolve every `"auto"` model to a concrete name** (see Model
 tiering) at the settled tier — inline on each reviewer, and in a `models` map for the single
 stages (only those whose config model is `"auto"`; an explicit model keeps its name). Write
@@ -313,7 +315,7 @@ stages (only those whose config model is `"auto"`; an explicit model keeps its n
 ```json
 { "tier": "small", "reason": "localized low-risk change",
   "models": { "verify": "sonnet", "architect": "opus", "implementer": "haiku",
-              "success_criteria": "sonnet", "fulfillment": "sonnet" },
+              "success_criteria": "sonnet", "fulfillment": "sonnet", "followups": "sonnet" },
   "reviewers": [{ "use": "staff-review", "model": "sonnet" }],
   "final_reviewers": [{ "use": "thermonuclear", "model": "sonnet" }],
   "inner_iterations": 2, "final_review_rounds": 1 }

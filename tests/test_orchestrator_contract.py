@@ -368,7 +368,8 @@ def test_step_headings_declare_their_phase():
 
 
 def test_standing_checks_cover_new_arms_and_disclosure():
-    assert "test-exercised on both sides" in ORCH
+    assert "these three checks" in ORCH
+    assert re.search(r"test-exercised on both\s+sides", ORCH)
     assert "input classes the old path handled" in ORCH
     assert "silently invert" in ORCH
     assert "conventions doc" in ORCH
@@ -385,6 +386,14 @@ def test_scope_split_and_followups_ledger():
     assert "never instructs reviewers not to report" in ORCH
     assert "only on human approval" in ORCH
     assert "never an issue without approval" in ORCH
+
+
+def test_followups_stage_is_integrated_with_configuration_and_resume():
+    assert "`fulfillment`, `followups`) may be absent" in ORCH
+    assert "fulfillment or followups" in ORCH
+    assert "`iter-N/followups.md`" in ORCH
+    assert "fulfillment, followups)" in ORCH
+    assert '"followups": "sonnet"' in ORCH
 
 
 def test_pr_body_claims_are_verified():
