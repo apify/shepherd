@@ -15,7 +15,7 @@ def test_orchestrator_reads_config_and_registry():
 
 def test_orchestrator_skill_stays_compact():
     # Keep the orchestrator readable, but do not force removal of operational guidance.
-    assert len(ORCH.splitlines()) <= 450
+    assert len(ORCH.splitlines()) <= 500
 
 
 def test_orchestrator_documents_per_reviewer_files():
@@ -328,7 +328,8 @@ def test_open_questions_are_real_decisions():
 def test_design_iterate_grills_decisions():
     assert "Grill decisions" in ORCH
     assert "Look up facts yourself" in ORCH
-    assert "only decisions" in ORCH
+    assert "Only decisions go to the human" in ORCH
+    assert "a convention that settles" in ORCH
     assert "miss a real fork" in ORCH
 
 
@@ -364,3 +365,53 @@ def test_step_headings_declare_their_phase():
     assert len(headings) == 9
     missing = [h for h in headings if "`phase=" not in h]
     assert missing == [], f"headings without a phase annotation: {missing}"
+
+
+def test_standing_checks_cover_new_arms_and_disclosure():
+    assert "these three checks" in ORCH
+    assert re.search(r"test-exercised on both\s+sides", ORCH)
+    assert "input classes the old path handled" in ORCH
+    assert "silently invert" in ORCH
+    assert "conventions doc" in ORCH
+
+
+def test_scope_split_and_followups_ledger():
+    assert "## Scope split" in ORCH
+    assert "Prerequisite refactor" in ORCH
+    assert "explicit gate decision" in ORCH
+    assert "refactor-separation" in ORCH
+    assert "never as the default" in ORCH
+    assert "followups.md" in ORCH
+    assert "pre-existing" in ORCH
+    assert "never instructs reviewers not to report" in ORCH
+    assert "only on human approval" in ORCH
+    assert "never an issue without approval" in ORCH
+
+
+def test_followups_stage_is_integrated_with_configuration_and_resume():
+    assert "`fulfillment`, `followups`) may be absent" in ORCH
+    assert "fulfillment or followups" in ORCH
+    assert "`iter-N/followups.md`" in ORCH
+    assert "fulfillment, followups)" in ORCH
+    assert '"followups": "sonnet"' in ORCH
+
+
+def test_pr_body_claims_are_verified():
+    assert "must match the final oracle run" in ORCH
+    assert "stale count or nonexistent reference" in ORCH
+
+
+def test_verify_delta_mode_on_rerun():
+    assert "delta mode" in ORCH
+    assert "narrowed, never skipped" in ORCH
+
+
+def test_gate_panel_lens_fit_nudge():
+    assert "lens-fit assessment" in ORCH
+    assert "never edits the panel itself" in ORCH
+
+
+def test_light_rereview_for_trivial_fix_here():
+    assert "delta-focused panel reviewer plus a fulfillment-delta check" in ORCH
+    assert "picks the mode" in ORCH
+    assert "escalates back to the full step 5" in ORCH

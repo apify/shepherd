@@ -7,7 +7,7 @@
   "required": ["stages"],
   "properties": {
     "stages": {
-      "description": "Engine and model assignments for each shepherd stage. Single stages (verify, architect, implementer, success_criteria, fulfillment) are optional: when absent, the built-in role table drives the stage without an engine.",
+      "description": "Engine and model assignments for each shepherd stage. Single stages (verify, architect, implementer, success_criteria, fulfillment, followups) are optional: when absent, the built-in role table drives the stage without an engine.",
       "type": "object",
       "additionalProperties": false,
       "required": ["reviewers", "final_reviewers"],
@@ -17,6 +17,7 @@
         "implementer": { "$ref": "#/$defs/singleStageValue" },
         "success_criteria": { "$ref": "#/$defs/singleStageValue" },
         "fulfillment": { "$ref": "#/$defs/singleStageValue" },
+        "followups":   { "$ref": "#/$defs/singleStageValue" },
         "reviewers":       { "description": "Roster for inner-loop reviewers. The design gate selects a per-run subset.", "type": "array", "items": { "$ref": "#/$defs/stageValue" }, "minItems": 1 },
         "final_reviewers": { "description": "Roster for post-convergence reviewers. May be empty.", "type": "array", "items": { "$ref": "#/$defs/stageValue" }, "minItems": 0 }
       }
