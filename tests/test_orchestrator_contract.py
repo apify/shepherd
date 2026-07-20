@@ -198,6 +198,15 @@ def test_orchestrator_dispatches_reviewers_in_parallel():
     assert "never overwrite an earlier round's files" in ORCH
 
 
+def test_dispatched_stage_completion_is_disk_based():
+    # A dispatched stage's output file on disk is the completion signal, independent of
+    # dispatch mode (background vs blocking) and dispatch site (single or parallel fan-out) —
+    # the orchestrator must never claim it's still waiting without checking disk first.
+    assert "completion signal" in ORCH
+    assert "output file on disk" in ORCH
+    assert "Never report a dispatched stage as still running" in ORCH
+
+
 def test_dispatched_stages_run_non_interactively():
     assert "non-interactively" in ORCH
     assert "record open questions in your output file" in ORCH
