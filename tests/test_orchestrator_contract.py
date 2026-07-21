@@ -201,10 +201,13 @@ def test_orchestrator_dispatches_reviewers_in_parallel():
 def test_dispatched_stage_completion_is_disk_based():
     # A dispatched stage's output file on disk is the completion signal, independent of
     # dispatch mode (background vs blocking) and dispatch site (single or parallel fan-out) —
-    # the orchestrator must never claim it's still waiting without checking disk first.
+    # the orchestrator must never claim it's still waiting without checking disk first. When the
+    # file is absent it reports the unknown honestly and never fabricates a status from turn count.
     assert "completion signal" in ORCH
     assert "output file on disk" in ORCH
     assert "Never report a dispatched stage as still running" in ORCH
+    assert "status unknown; output not present" in ORCH
+    assert 'Never infer "still running" or "stalled" from turn count or a human check-in' in ORCH
 
 
 def test_dispatched_stages_run_non_interactively():
