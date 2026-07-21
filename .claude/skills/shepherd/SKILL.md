@@ -477,8 +477,10 @@ from step 5 (Inner loop).
 - Verify runs on every run; the claim ledger is never empty.
 - Never report a dispatched stage as still running, and never end a turn waiting on one, without
   first checking its output file on disk — present and complete means done: read it and proceed.
-  An absent file after several turns or a direct human check-in isn't "still running" either —
-  say so and offer to re-dispatch.
+  An absent or incomplete output proves neither liveness nor failure: if dispatch status exists,
+  report running only when explicitly active and stalled only when terminal; without a liveness
+  signal, report `status unknown; output not present` and offer to wait or re-dispatch — never infer
+  status from turn count or a human check-in.
 - Blindness per the role table's "do NOT read" column; judgment files are pasted, never granted;
   the repository itself is never blinded.
 - shepherd never commits `.shepherd/` paths. Run data stays ignored via the run's
