@@ -5,6 +5,7 @@
     "implementer": "implementer",
     "success_criteria": "success_criteria",
     "fulfillment": "fulfillment",
+    "followups": "followups",
     "reviewers": "reviewer",
     "final_reviewers": "final_reviewer"
   },
@@ -27,12 +28,12 @@
     "staff-review": {
       "roles": ["reviewer", "final_reviewer"],
       "engine": "../_vendored/staff-review/ENGINE.md",
-      "scope": "apply to the pasted diff; focus on correctness, edge cases, test coverage, and adherence to the repo's stated conventions (CLAUDE.md / CONTRIBUTING and their AGENTS.md children); skip its argument parsing and gh/PR flows"
+      "scope": "apply to the pasted diff; focus on correctness, edge cases, test coverage, and adherence to the repo's stated conventions (CLAUDE.md / CONTRIBUTING and their AGENTS.md children); verify every conditional arm the diff adds is test-exercised on both sides and a rewritten path against the old path's input classes; a changed helper keeps its call contract (no silently inverted defaults); check names, enum/type aliases, and test placement against the repo's conventions doc; skip its argument parsing and gh/PR flows"
     },
     "thermonuclear": {
       "roles": ["reviewer", "final_reviewer"],
       "engine": "../_vendored/thermonuclear/ENGINE.md",
-      "scope": "follow as instruction text, not as an invoked skill; apply maintainability standards to the pasted diff: 1k-line file ceiling, no spaghetti branching, and code-judo simplification; map presumptive blockers to blocker or major"
+      "scope": "follow as instruction text, not as an invoked skill; apply maintainability standards to the pasted diff: 1k-line file ceiling, no spaghetti branching, and code-judo simplification; trace the import graph of any new module — importing heavier layers than its role needs, or module-global state shared across instances, is a finding; map presumptive blockers to blocker or major"
     },
     "code-review": {
       "roles": ["reviewer", "final_reviewer"],
@@ -42,7 +43,7 @@
     "ponytail-review": {
       "roles": ["reviewer", "final_reviewer"],
       "engine": "../_vendored/ponytail-review/ENGINE.md",
-      "scope": "apply to the pasted diff; complexity/deletion lens only — correctness stays with the other reviewers. Judge every cut against the pasted 2-design.md: a cut that contradicts an approved decision or a stated behavior-preservation constraint is a human-call finding, not a recommendation. First line VERDICT: PASS|FAIL, then its one-line findings mapped to severities (delete/yagni → minor, shrink/doc-style → nit), keeping its net-lines metric at the end. Clarity outranks the line count: never propose nested ternaries, dense one-liners, or concern-merging as cuts — a cut that makes the code harder to read is not a finding"
+      "scope": "apply to the pasted diff; complexity/deletion lens only — correctness stays with the other reviewers. Judge every cut against the pasted 2-design.md: a cut that contradicts an approved decision or a stated behavior-preservation constraint is a human-call finding, not a recommendation. First line VERDICT: PASS|FAIL, then its one-line findings mapped to severities (delete/yagni → minor, shrink/doc-style → nit), keeping its net-lines metric at the end. Half-migrated call sites and machinery disproportionate to the problem are findings. Clarity outranks the line count: never propose nested ternaries, dense one-liners, or concern-merging as cuts — a cut that makes the code harder to read is not a finding"
     }
   }
 }

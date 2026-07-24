@@ -3,7 +3,7 @@ from conftest import REPO_ROOT, load_json
 REGISTRY = load_json(REPO_ROOT / ".claude/skills/shepherd/registry.base.json")
 CONFIG = load_json(REPO_ROOT / ".claude/skills/shepherd/config.default.json")
 
-SINGLE_STAGES = ("verify", "architect", "implementer", "success_criteria", "fulfillment")
+SINGLE_STAGES = ("verify", "architect", "implementer", "success_criteria", "fulfillment", "followups")
 STAGES = set(SINGLE_STAGES) | {"reviewers", "final_reviewers"}
 ROLES = set(SINGLE_STAGES) | {"reviewer", "final_reviewer"}
 

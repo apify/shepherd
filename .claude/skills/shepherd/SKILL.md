@@ -30,7 +30,7 @@ ephemeral; the files are the record.
   `_design_feedback.md`, `_panel.json`, `_state.json`, `_progress.md`, `_design.approved`,
   `_create_pr.approved`.
 - Per iteration in `iter-N/`: `claim.md`, `review-<use>.md`, `final-review-<use>.md`,
-  `fulfillment.md`, and the regenerable (gitignored) `diff.patch`, `test-results.txt`
+  `fulfillment.md`, `followups.md`, and the regenerable (gitignored) `diff.patch`, `test-results.txt`
   (plus `baseline.txt` and `predirty.txt` in `iter-1/` only — the pre-change oracle metrics
   and any pre-existing dirty paths).
 
@@ -79,7 +79,8 @@ reliably type a slash-command. Surface everything they need into the conversatio
    - Resolve `registry.base.json` plus optional `.shepherd/registry.json` `uses`.
    - Validate every configured `use` against `registry.stage_roles` and `registry.uses`; no
      duplicate `use` inside `reviewers` or `final_reviewers`. Single stages (`verify`,
-     `architect`, `implementer`, `success_criteria`, `fulfillment`) may be absent from config.
+     `architect`, `implementer`, `success_criteria`, `fulfillment`, `followups`) may be absent
+     from config.
    - Record `oracle.commands`, limits, plan-mode setting, and the fully-resolved registry in
      `_progress.md`.
    - As each dispatched stage completes, append one ledger line to `_progress.md`: stage ·
@@ -97,8 +98,9 @@ Resume by phase:
 - `phase=design-gate` without the marker → re-present the design + panel (step 4, Design gate) and wait.
 - `phase=inner-loop`, `final-review`, or `review-run` → continue that phase.
 - `phase=create-pr` + `_create_pr.approved` → go to step 9 (Finish).
-- `phase=create-pr` without the marker → dispatch fulfillment first if the latest
-  `iter-N/fulfillment.md` is missing, then act on its verdict per step 7 (Fulfillment).
+- `phase=create-pr` without the marker → dispatch either fulfillment or followups if its latest
+  artifact (`iter-N/fulfillment.md` or `iter-N/followups.md`) is missing, then act on their
+  verdicts per step 7 (Fulfillment).
 - `phase=done` → the run is complete; report and stop.
 - Otherwise, re-announce the stop being waited on and stop.
 
@@ -126,52 +128,61 @@ Method line omitted. For stage key `K` with assignment `S`:
 > {role.standing} (reviewer and final-reviewer roles only; omit the line otherwise).
 > **Write:** `{role.writes}` in this format: {role.format}.
 
+4. Completion signal: dispatch prefers blocking; when backgrounded, or fanning reviewers out in
+   parallel, `{role.writes}` on disk is the completion signal everywhere it's dispatched. File
+   presence is the floor; a terminal-marker format (a ledger verdict line, `VERDICT:`) isn't done
+   until the file carries it too — a parallel round completes only once every reviewer's file is
+   present **and** verdicted. An overwrite-in-place re-dispatch (architect revision, a
+   `success_criteria` re-run) starts with the file already present: record its content hash in
+   `_progress.md` at dispatch time and treat it done once a fresh hash differs — never mtime/size.
+   Check output files on disk before any status claim, every turn, not only at resume; no
+   idle-polling loop.
+
 If the dispatched agent has no write access, it returns the artifact verbatim as its final
 message and the orchestrator persists it to `{role.writes}` **unchanged** — a mechanical relay,
 not authorship; the no-judgment-files rule is not violated. Note the relay in `_progress.md`.
 
-`{role.standing}` for reviewer and final-reviewer roles always carries six checks, regardless
-of what the design emphasizes:
-- committed code must not reference run-internal artifacts (`.shepherd/`, plan files, session paths);
-- cruft preserved by a faithful migration is still a finding — "byte-identical" instructions
-  cover assertions/behavior, not carried-over dead code;
-- a comment the diff adds, edits, or moves must still be true of the code it now describes —
-  stale references, wrong claims, and comments restating the obvious are findings;
-- every finding carries evidence checked against the repository — a file:line, a command run, a
-  cited doc — and identifiers the diff relies on (env vars, config keys, paths) must exist;
-  a suspicion no check could ground goes in as a question, not a finding — unverified review
-  claims cause over-engineering and erode trust;
-- a new public/exported symbol, option, or env var with no consumer in the diff needs an explicit
-  reason to be public (`@internal`, private, or a visibility note) — surface added only "for
-  testing" or "for later" is a finding;
-- a diff that adds, renames, or removes a public symbol, option, or env var must update every doc
-  that teaches it (README, guides, upgrading notes, examples) — an unsynced doc is a finding.
+`{role.standing}` for reviewer and final-reviewer roles always carries these checks, regardless
+of what the design emphasizes: committed code must not reference run-internal artifacts
+(`.shepherd/`, plan files, session paths); cruft preserved by a faithful migration is still a
+finding — "byte-identical" instructions cover assertions/behavior, not carried-over dead code;
+a comment the diff adds, edits, or moves must still be true of the code it now describes —
+stale references, wrong claims, comments restating the obvious, and comments longer than the
+code they describe are findings; also flag AI-slop — abnormal defensive try/catch (defensive
+code at trust boundaries is fine), type-escape casts (`any` or equivalent), deep nesting that
+should be early returns, and other patterns inconsistent with the surrounding file. Also require
+these three checks: a conditional branch or guard the diff adds must be test-exercised on both
+sides, and a rewritten path must be exercised against the input classes the old path handled —
+an untested new arm is a finding; a behavior delta versus design or base that the design leaves
+unstated is a finding, including a changed helper whose default/no-arg semantics silently invert;
+and whatever the diff names, places, or exports must follow the repo's stated conventions doc,
+with no heavier import than its role needs; every finding carries evidence checked against the
+repository, relied-on identifiers must exist, and ungrounded suspicion is a question, not a finding.
+A new public/exported symbol, option, or env var with no consumer in the diff needs a reason to be
+public (`@internal`, private, or a visibility note); testing/later-only surface is a finding; public changes update all teaching docs; an unsynced doc is a finding.
 
 | role | reads | do NOT read | writes | format |
 |------|-------|-------------|--------|--------|
-| `verify` | `_user_request.md`, `1-triage.md`, codebase, referenced issue; **for a review-only run also the PR/branch description and its diff — treat that description as the claim source** | `2-design.md`, `3-success-criteria.md` | `_request_fact_check.md` | claim ledger: every request claim tagged `VALID \| STALE \| LIKELY-FIXED \| UNVERIFIABLE` with evidence, plus a one-line verdict — never empty |
+| `verify` | `_user_request.md`, `1-triage.md`, codebase, referenced issue, current upstream sources for any claim resting on facts outside the repo; **for a review-only run also the PR/branch description and its diff — treat that description as the claim source** | `2-design.md`, `3-success-criteria.md` | `_request_fact_check.md` | claim ledger: every request claim tagged `VALID \| STALE \| LIKELY-FIXED \| UNVERIFIABLE` with evidence (claims resting on facts outside the repo: check current upstream sources, not model memory), plus a one-line verdict — never empty |
 | `explorer` | codebase | `.shepherd/` internals | `_codebase_map.md` | ≤1 page: key files · patterns · data flow · risks |
 | `architect` | `_user_request.md`, `1-triage.md`, `_request_fact_check.md`, `_codebase_map.md` if present, `_design_feedback.md` if present (settled human decisions — constraints, not suggestions), codebase; on a revision pass also its previous `2-design.md` | `3-success-criteria.md` | `2-design.md` | the design template in step 3 (Design) |
 | `success_criteria` | pasted content of the "What we're solving" and "How it will work" sections of `2-design.md`, plus `_user_request.md`, `1-triage.md`, and `_request_fact_check.md` (verified facts — real paths, real coverage gaps — so criteria reference reality instead of guessing; it contains no solution) — nothing else | the rest of `2-design.md` (the solution), `claim.md` | `3-success-criteria.md` | numbered, testable criteria — each verifiable by a command or an observable behavior; no solution details |
 | `implementer` | `2-design.md`, `3-success-criteria.md`, `_request_fact_check.md`, `_codebase_map.md` if present, all prior `iter-*/review-*.md` + `final-review-*.md` + `fulfillment.md` | — | source edits + `iter-N/claim.md` | what done · every finding fixed, none skipped or deferred · for a behavior change, add a regression test — ideally shown red before the fix and green after, with the red→green noted in `claim.md` — never weaken/delete tests · keep the diff scoped to the design: a hunk the design doesn't call for is reverted or gets a one-line rationale in `claim.md` · non-obvious mechanisms, suppressions, and magic constants get a why-comment, with provenance for ported logic |
-| `reviewer` | pasted content of `2-design.md`, `3-success-criteria.md`, `iter-N/diff.patch`, `iter-N/test-results.txt`, plus the repository itself (working tree, git history, read-only commands) — no other `.shepherd/` files | `claim.md`, peer reviewers' output | `iter-N/review-<use>.md` | first line `VERDICT: PASS\|FAIL` (PASS = zero findings), then findings tagged `blocker\|major\|minor\|nit` |
+| `reviewer` | pasted content of `2-design.md`, `3-success-criteria.md`, `iter-N/diff.patch`, `iter-N/test-results.txt`, plus the repository itself (working tree, git history, read-only commands) — no other `.shepherd/` files | `claim.md`, peer reviewers' output | `iter-N/review-<use>.md` | first line `VERDICT: PASS\|FAIL` (PASS = zero findings, `pre-existing`-tagged ones excepted), then findings tagged `blocker\|major\|minor\|nit`; a defect in adjacent code that predates the diff carries the extra tag `pre-existing` — reported, never silenced, routed to step 7 (Fulfillment + create-PR confirm) |
 | `final_reviewer` | same as reviewer, but judging the post-fix integrated state: interactions with unchanged code, consumer/contract impact, doc/AGENTS staleness — not a second pass over the patch | `claim.md`, peer reviewers' output | `iter-N/final-review-<use>.md` | same verdict format as reviewer |
 | `fulfillment` | pasted content of `3-success-criteria.md`, `iter-N/diff.patch`, `iter-N/test-results.txt`, `iter-N/claim.md`, plus the working tree (may run the non-mutating check a criterion names) | `2-design.md` solution details, review files | `iter-N/fulfillment.md` | first line `VERDICT: PASS\|FAIL`, then each criterion `MET \| NOT MET` with evidence |
+| `followups` | pasted content of the design's "Scope split" section and of every `iter-*/review-*.md` + `final-review-*.md` (all iterations) | `3-success-criteria.md`, `claim.md` | `iter-N/followups.md` | ledger: item · origin (`scope-split` \| review file) · proposed disposition `fix-here \| issue \| pr-note \| drop` · one-line why; never empty — "none" explicitly |
 
 ### Model tiering
 
-`"auto"` (the shipped default) lets the orchestrator pick a model per role and triage tier; an
-explicit name (`opus`, `sonnet`, `haiku`) is used verbatim. Resolve `"auto"` as: `implementer` →
-`haiku` (`sonnet` for `medium`/`large` — a subtle change is not transcription); `verify`,
-`explorer`, `success_criteria`, `fulfillment`, `reviewer` → `sonnet`; `architect` → `opus`
-(`sonnet` for a revision pass — it folds feedback into an existing design without re-exploring);
-`final_reviewer` → `opus` (`sonnet` for `trivial`/`small`). `sonnet` is the floor for review —
-never `haiku`. The panel never resolves entirely onto the implementer's model: keep at least one
-reviewer — and one final reviewer when the panel has any — on a different model, because a judge
-sharing the generator's model favors its output (self-preference bias). Pre-gate stages (verify, explorer, architect, success_criteria) resolve `"auto"`
-at dispatch time from this table. At step 4 (Design gate), record all picks in
-`_panel.json`: the pre-gate ones as the record of what ran, the post-gate ones (implementer,
-reviewers, final reviewers, fulfillment) for the human to edit before approving.
+`"auto"` picks by role and tier; an explicit `opus`, `sonnet`, or `haiku` is used verbatim.
+Resolve implementer → `haiku` (`sonnet` for `medium`/`large`); verify, explorer, criteria,
+fulfillment, followups, reviewer → `sonnet`; architect → `opus` (`sonnet` on revision);
+final reviewer → `opus` (`sonnet` for `trivial`/`small`). Review uses `sonnet` or higher.
+The panel never resolves entirely onto the implementer's model: keep at least one reviewer —
+and one final reviewer when present — different to limit self-preference bias. Resolve pre-gate
+`"auto"` picks at dispatch; at step 4 (Design gate), `_panel.json` is the record of what ran plus
+post-gate picks (implementer, reviewers, final reviewers, fulfillment, followups) for human edit.
 
 ## Procedure
 
@@ -180,7 +191,9 @@ reviewers, final reviewers, fulfillment) for the human to edit before approving.
 Orchestrator-owned cheap product screen — no dispatch, no deep code reading; a quick skim is
 fine. Write `.shepherd/1-triage.md` in about 12 lines:
 - Problem
-- Decision: `PROCEED | DEFER | DECLINE`
+- Decision: `PROCEED | DEFER | DECLINE` — DEFER an under-specified request (no determinable
+  problem or user-visible outcome) and put what's missing in Open questions; a clear problem
+  with an open solution still proceeds — design settles solutions, not triage
 - Complexity: `trivial | small | medium | large`
 - Review-only: `yes | no` — `yes` when the task is "review PR/branch/diff X" with nothing to build
 - Approach sketch, high level only
@@ -211,8 +224,11 @@ switch) — every later stage reads that checkout. Then set `state.phase="verify
 
 ### 2. Verify — `phase=verify`
 
-Run the `verify` stage on every run — never skipped by tier. It builds the authoritative claim
-ledger in `_request_fact_check.md`: every claim in the request tagged
+Run the `verify` stage on every run — never skipped by tier. On a fresh run whose archived
+predecessor targets the same repo and base commit, verify may run in delta mode: re-check only
+claims whose subject changed (new decisions, moved code, upstream PR state), re-affirming the
+rest against the archived ledger with a citation — narrowed, never skipped. It builds the
+authoritative claim ledger in `_request_fact_check.md`: every claim in the request tagged
 `VALID | STALE | LIKELY-FIXED | UNVERIFIABLE` with evidence (running an existing test to verify
 a claim is fine — remove artifacts it leaves). **For a review-only run the claim source is the
 PR/branch description** (fetch it, e.g. `gh pr view`): tag each thing the PR says it does against
@@ -233,13 +249,9 @@ Otherwise set `state.phase="design"`.
   implementer reuse it. Skip for `trivial`/`small`, or when the verify fact-check already maps
   the files and the change is mechanical or localized (deletion, rename, inlining) — note why
   in `_progress.md`.
-- Dispatch the `architect` stage to write `.shepherd/2-design.md`. ~1 page, no code blocks, no
-  file:line dumps. Product first, implementation second. The design names the existing helpers
-  and patterns it builds on — search before inventing; a new helper, config option, or endpoint
-  gets one line on why nothing existing fits. Multi-step writes state their failure ordering
-  under Risks (crash mid-way, concurrent writer, fallback when a new path replaces an old one).
-  A design that unifies a style/format/template must pin it with one fully-worked example (a
-  complete sentence or instance showing placement and punctuation), not only named parts:
+- Dispatch the `architect` stage to write `.shepherd/2-design.md`: ~1 page, no code blocks or file:line dumps.
+  Product first, implementation second; search before inventing by naming reused helpers or why none fits.
+  Risks cover failure ordering (crash mid-way, concurrent writer, replacement fallback); unified styles/templates need a worked example:
 
   ```
   ## What we're solving      (product: the problem and who hits it)
@@ -247,10 +259,25 @@ Otherwise set `state.phase="design"`.
   ## Proposed solution       (implementation approach)
   ## Alternatives + the call
   ## Major changes           (key files/areas only — never an exhaustive file list)
+  ## Scope split             (This PR · Prerequisite refactor · Follow-ups)
   ## Risks
-  ## Open questions          (numbered; each with your recommended answer)
+  ## Open questions          (real decisions only — each: options + recommended answer; no filler)
   ## Decisions               (from _design_feedback.md when it exists; otherwise starts empty)
   ```
+
+  Facts verifiable in the repo or issue belong in the design body, not Open questions — ask as
+  many decisions as the design needs, no minimum or maximum.
+
+  Scope split partitions the work: This PR (what the diff will contain), Prerequisite refactor
+  (restructuring the change needs — lands first, as its own PR, never as a commit inside the
+  main PR), Follow-ups (adjacent debt or gaps found during exploration that this PR
+  deliberately leaves). Before declaring Prerequisite refactor empty, check the repo's
+  refactor-separation policy (CLAUDE.md / CONTRIBUTING): where the repo mandates
+  refactor-lands-first, any "refactor first, then the change" structure IS a non-empty
+  prerequisite — calling it internal commit sequencing is a design defect. A non-empty
+  Prerequisite refactor is an explicit gate decision: surface it to the human and proceed only
+  on their confirmed choice — deliver the prerequisite first, or (only on the human's explicit
+  pick, never as the default) fold it in.
 
   For a review-only run, `2-design.md` is the review scope: what to check and which reviewers.
 - Dispatch the `success_criteria` stage: paste it ONLY the two product sections of the design
@@ -260,10 +287,13 @@ Otherwise set `state.phase="design"`.
   contract.
 
 **Iterate — the conversation is the orchestrator's; every rewrite is a subagent's.**
-- Present the FULL `2-design.md` + `3-success-criteria.md` (see "Keep the human in the loop"),
-  then work the open questions: one question at a time, multiple choice where possible, always
-  with your recommended answer — product questions first, implementation after.
-- Be proactive: raise risks and trade-off calls yourself. YAGNI — cut speculative scope.
+- Present the FULL `2-design.md` + `3-success-criteria.md` (see "Keep the human in the loop").
+- Grill decisions one question at a time (wait for each answer): options + your recommended
+  answer; product questions first, implementation after. Look up facts yourself — including the
+  repo's conventions doc for any naming/signature/parameter question; a convention that settles
+  the question is a fact, not a human decision. Only decisions go to the human. Walk
+  dependencies in order — if Open questions miss a real fork, ask it.
+  YAGNI — cut speculative scope.
 - **Batch a round of answers**, then append them verbatim to `_design_feedback.md`
   (append-only; the orchestrator writes only this file, never the design or criteria).
 - Re-run the `architect` as a **revision pass** — it reads its previous `2-design.md` +
@@ -283,7 +313,11 @@ Do not edit source files until `.shepherd/_design.approved` exists. Set
 Propose the per-run review panel from the configured roster: start from the triage tier, adjust
 for the actual design scope, and pick in config order unless the design's risk calls for a
 specific reviewer. Two or more reviewers must differ in lens (e.g. diff-correctness vs
-adversarial vs live-probe vs contract/consumer). **Resolve every `"auto"` model to a concrete name** (see Model
+adversarial vs live-probe vs contract/consumer). At every human gate, present the panel with a
+one-line lens-fit assessment per reviewer stating whether the lens is live for this design or
+structurally muted (e.g. a complexity/deletion lens on a behavior-preserving move that forbids
+cuts), and invite roster/model changes; the orchestrator never edits the panel itself, and a panel
+change folds into the gate, not a new stop. **Resolve every `"auto"` model to a concrete name** (see Model
 tiering) at the settled tier — inline on each reviewer, and in a `models` map for the single
 stages (only those whose config model is `"auto"`; an explicit model keeps its name). Write
 `.shepherd/_panel.json`:
@@ -291,7 +325,7 @@ stages (only those whose config model is `"auto"`; an explicit model keeps its n
 ```json
 { "tier": "small", "reason": "localized low-risk change",
   "models": { "verify": "sonnet", "architect": "opus", "implementer": "haiku",
-              "success_criteria": "sonnet", "fulfillment": "sonnet" },
+              "success_criteria": "sonnet", "fulfillment": "sonnet", "followups": "sonnet" },
   "reviewers": [{ "use": "staff-review", "model": "sonnet" }],
   "final_reviewers": [{ "use": "thermonuclear", "model": "sonnet" }],
   "inner_iterations": 2, "final_review_rounds": 1 }
@@ -352,8 +386,10 @@ For each iteration `N`:
    `3-success-criteria.md`, `diff.patch`, and `test-results.txt`, plus read access to the
    repository. They stay blind to `claim.md` and peer reviews.
 6. Converge when the oracle is green and baseline-consistent and every reviewer verdict is PASS
-   — every finding gets fixed, whatever its severity: nits too; the implementer
-   never skips or defers one. The lone exception is the human's: a finding fixable only by
+   — every finding gets fixed, whatever its severity: nits too (`pre-existing`-tagged findings
+   skip the loop and route to the followups ledger at step 7 (Fulfillment + create-PR confirm));
+   the implementer
+   never skips or defers one. The other exception is the human's: a finding fixable only by
    changing the approved design or criteria (see Hard rules). Otherwise iterate until
    `inner_iterations`; then stop and present a findings table (fixed / open), the oracle
    status, and the options: extend the limit, accept with open findings recorded, or abandon.
@@ -376,13 +412,24 @@ step 5 (Inner loop) convergence rule, set `state.phase="create-pr"`.
 
 On entering `phase="create-pr"`, dispatch the `fulfillment` stage: it judges the diff, tests,
 and claim against `3-success-criteria.md` and writes `iter-N/fulfillment.md` with each criterion
-`MET | NOT MET`.
+`MET | NOT MET`. Also dispatch the `followups` stage: it compiles the design's Scope split
+leftovers and every `pre-existing`-tagged finding into `iter-N/followups.md` with a proposed
+disposition per item.
 
 - Any `NOT MET` criterion reopens the inner loop like a blocker finding, within the same limits.
   When limits are exhausted, or the human disputes a criterion itself, ask the human: accept
   with the exception recorded, extend the limit, or abandon.
-- When fulfillment passes: no plan mode. Summarize in chat — the fulfillment table, oracle
-  status, reviewer verdicts, fixed findings, `git diff --stat`. Ask **"commit & open PR?"** and
+- When fulfillment passes: no plan mode. Summarize in chat — the fulfillment table, the
+  followups ledger verbatim, oracle status, reviewer verdicts, fixed findings, `git diff --stat`.
+  The human dispositions each ledger item: `fix-here` reopens the inner loop; `issue` is created
+  only now, on this approval; `pr-note` lands in the PR body; `drop` is recorded in
+  `_progress.md`. Never silent; never an issue without approval. When every fix-here item is
+  doc/comment/style-only with no behavior or signature change (combined ≤10 lines), propose —
+  in the same gate exchange, with each option's cost — converging that fix round via ONE
+  delta-focused panel reviewer plus a fulfillment-delta check instead of the full panel; the
+  human's reply picks the mode, and any finding, oracle delta, or out-of-scope change in a
+  light round escalates back to the full step 5 (Inner loop) convergence rule. Ask
+  **"commit & open PR?"** and
   proceed only on a clear yes, which records `_create_pr.approved`. Headless runs use
   `/shepherd-approve-create-pr`. This approves creating the PR, not merging it.
 
@@ -403,15 +450,16 @@ from step 5 (Inner loop).
    `iter-1/predirty.txt`); stop if unrelated changes are present.
 2. Commit only the run's own paths — pre-existing changes stay uncommitted in the tree. **If the
    repo has a PR template** (`.github/pull_request_template.md` or the other usual locations),
-   mirror its section headings and fill them from the run — a layout, not instructions to obey.
-   **Otherwise** write the PR body plain: **What we're solving · How · Alternatives considered**.
-   Either way: plain commit message, never enumerate changes obvious from the diff, summarize
-   run evidence (fulfillment, oracle, reviewer verdicts); run files stay ignored. Scale the body
-   to the diff: a large or subtle change states its mechanism and known limitations, and any
-   incidental change carries its one-line why — thin bodies on big diffs shift the cost onto
-   reviewers. When the run
+   mirror its section headings and fill each briefly — a layout, not instructions to obey.
+   **Otherwise** at most three short bullets (What / Why / Notes). Either way: plain commit
+   message, never enumerate changes obvious from the diff; evidence is one short clause, not a
+   transcript; run files stay ignored. Large/subtle changes state mechanism and known limitations;
+   incidental changes carry a one-line why. When the run
    completes a tracked issue, end the PR body with `Closes #N` (auto-close on merge); reference
-   parent/epic issues non-closingly (`Part of #M`).
+   parent/epic issues non-closingly (`Part of #M`). Approved `pr-note` items land as a short
+   Follow-ups list in the body. Every number or factual claim in the body (test counts,
+   referenced files/issues) must match the final oracle run and repo state — a
+   stale count or nonexistent reference is a defect.
 3. If a writable remote exists, push and open a PR. Record the evidence summary, approval
    timestamps, and PR URL in `_progress.md`, then set `state.phase="done"`.
 
@@ -428,6 +476,11 @@ from step 5 (Inner loop).
   on-disk marker is the only approval signal.
 - Triage has no gate; iterate the design with the human before the gate — chat is never the record.
 - Verify runs on every run; the claim ledger is never empty.
+- Never report a dispatched stage as still running, and never end a turn waiting on one, without
+  first checking its output file on disk — present and complete means done: read it and proceed.
+  An absent output file tells you only that the stage isn't done — not whether it's still
+  working or has died: report `status unknown; output not present` and offer to wait or
+  re-dispatch. Never infer "still running" or "stalled" from turn count or a human check-in.
 - Blindness per the role table's "do NOT read" column; judgment files are pasted, never granted;
   the repository itself is never blinded.
 - shepherd never commits `.shepherd/` paths. Run data stays ignored via the run's
@@ -441,4 +494,7 @@ from step 5 (Inner loop).
   or the human explicitly accepts the exception.
 - A finding fixable only by changing the approved `2-design.md` / `3-success-criteria.md` is the
   human's call — surface it at the gate; never edit an approved artifact to silence a finding.
+- A design or review scope may downgrade severity or route a finding to follow-up; it
+  never instructs reviewers not to report a class of findings — adjacent pre-existing defects
+  are tagged, surfaced at the create-PR gate, and issues for them are created only on human approval.
 - Commit/PR text: plain, PR-template-following, no obvious-from-the-diff narration (step 9, Finish).

@@ -15,7 +15,7 @@ def test_orchestrator_reads_config_and_registry():
 
 def test_orchestrator_skill_stays_compact():
     # Keep the orchestrator readable, but do not force removal of operational guidance.
-    assert len(ORCH.splitlines()) <= 450
+    assert len(ORCH.splitlines()) <= 500
 
 
 def test_orchestrator_documents_per_reviewer_files():
@@ -198,6 +198,18 @@ def test_orchestrator_dispatches_reviewers_in_parallel():
     assert "never overwrite an earlier round's files" in ORCH
 
 
+def test_dispatched_stage_completion_is_disk_based():
+    # A dispatched stage's output file on disk is the completion signal, independent of
+    # dispatch mode (background vs blocking) and dispatch site (single or parallel fan-out) —
+    # the orchestrator must never claim it's still waiting without checking disk first. When the
+    # file is absent it reports the unknown honestly and never fabricates a status from turn count.
+    assert "completion signal" in ORCH
+    assert "output file on disk" in ORCH
+    assert "Never report a dispatched stage as still running" in ORCH
+    assert "status unknown; output not present" in ORCH
+    assert 'Never infer "still running" or "stalled" from turn count or a human check-in' in ORCH
+
+
 def test_dispatched_stages_run_non_interactively():
     assert "non-interactively" in ORCH
     assert "record open questions in your output file" in ORCH
@@ -310,10 +322,44 @@ def test_orchestrator_documents_dirty_worktree_protection():
 
 
 def test_orchestrator_finish_writes_plain_commit_and_pr():
-    # Plain PR body: what / how / alternatives, never obvious-diff narration.
-    assert "Alternatives considered" in ORCH
+    # Short PR body: template headings filled briefly, else ≤3 bullets; no essay / diff narration.
+    assert "three short bullets" in ORCH
+    assert "What / Why / Notes" in ORCH
     assert "obvious from the diff" in ORCH
+    assert "one short clause" in ORCH
     assert "PR URL" in ORCH
+
+
+def test_open_questions_are_real_decisions():
+    assert "real decisions only" in ORCH
+    assert "no filler" in ORCH
+    assert "no minimum or maximum" in ORCH
+    assert "Facts verifiable" in ORCH
+
+
+def test_design_iterate_grills_decisions():
+    assert "Grill decisions" in ORCH
+    assert "Look up facts yourself" in ORCH
+    assert "Only decisions go to the human" in ORCH
+    assert "a convention that settles" in ORCH
+    assert "miss a real fork" in ORCH
+
+
+def test_standing_checks_include_ai_slop():
+    assert "comments longer than the" in ORCH
+    assert "abnormal defensive" in ORCH
+    assert "type-escape casts" in ORCH
+    assert "early returns" in ORCH
+
+
+def test_triage_defers_underspecified_requests():
+    assert "DEFER an under-specified request" in ORCH
+    assert "design settles solutions, not triage" in ORCH
+
+
+def test_verify_checks_external_spec_claims():
+    assert "facts outside the repo" in ORCH
+    assert "not model memory" in ORCH
 
 
 def test_step_references_name_their_target():
@@ -335,7 +381,7 @@ def test_step_headings_declare_their_phase():
 
 def test_standing_checks_require_evidence_grounded_findings():
     # Ungrounded review claims cause over-engineering; unverifiable suspicion is a question.
-    assert "always carries six checks" in ORCH
+    assert "always carries these checks" in ORCH
     assert "every finding carries evidence" in ORCH
     assert "a question, not a finding" in ORCH
 
@@ -364,3 +410,53 @@ def test_review_panel_never_matches_implementer_model_entirely():
 
 def test_pr_body_scales_with_diff():
     assert "mechanism and known limitations" in ORCH
+
+
+def test_standing_checks_cover_new_arms_and_disclosure():
+    assert "these three checks" in ORCH
+    assert re.search(r"test-exercised on both\s+sides", ORCH)
+    assert "input classes the old path handled" in ORCH
+    assert "silently invert" in ORCH
+    assert "conventions doc" in ORCH
+
+
+def test_scope_split_and_followups_ledger():
+    assert "## Scope split" in ORCH
+    assert "Prerequisite refactor" in ORCH
+    assert "explicit gate decision" in ORCH
+    assert "refactor-separation" in ORCH
+    assert "never as the default" in ORCH
+    assert "followups.md" in ORCH
+    assert "pre-existing" in ORCH
+    assert "never instructs reviewers not to report" in ORCH
+    assert "only on human approval" in ORCH
+    assert "never an issue without approval" in ORCH
+
+
+def test_followups_stage_is_integrated_with_configuration_and_resume():
+    assert "`fulfillment`, `followups`) may be absent" in ORCH
+    assert "fulfillment or followups" in ORCH
+    assert "`iter-N/followups.md`" in ORCH
+    assert "fulfillment, followups)" in ORCH
+    assert '"followups": "sonnet"' in ORCH
+
+
+def test_pr_body_claims_are_verified():
+    assert "must match the final oracle run" in ORCH
+    assert "stale count or nonexistent reference" in ORCH
+
+
+def test_verify_delta_mode_on_rerun():
+    assert "delta mode" in ORCH
+    assert "narrowed, never skipped" in ORCH
+
+
+def test_gate_panel_lens_fit_nudge():
+    assert "lens-fit assessment" in ORCH
+    assert "never edits the panel itself" in ORCH
+
+
+def test_light_rereview_for_trivial_fix_here():
+    assert "delta-focused panel reviewer plus a fulfillment-delta check" in ORCH
+    assert "picks the mode" in ORCH
+    assert "escalates back to the full step 5" in ORCH
