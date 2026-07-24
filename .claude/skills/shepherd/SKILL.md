@@ -128,6 +128,16 @@ Method line omitted. For stage key `K` with assignment `S`:
 > {role.standing} (reviewer and final-reviewer roles only; omit the line otherwise).
 > **Write:** `{role.writes}` in this format: {role.format}.
 
+4. Completion signal: dispatch prefers blocking; when backgrounded, or fanning reviewers out in
+   parallel, `{role.writes}` on disk is the completion signal everywhere it's dispatched. File
+   presence is the floor; a terminal-marker format (a ledger verdict line, `VERDICT:`) isn't done
+   until the file carries it too — a parallel round completes only once every reviewer's file is
+   present **and** verdicted. An overwrite-in-place re-dispatch (architect revision, a
+   `success_criteria` re-run) starts with the file already present: record its content hash in
+   `_progress.md` at dispatch time and treat it done once a fresh hash differs — never mtime/size.
+   Check output files on disk before any status claim, every turn, not only at resume; no
+   idle-polling loop.
+
 If the dispatched agent has no write access, it returns the artifact verbatim as its final
 message and the orchestrator persists it to `{role.writes}` **unchanged** — a mechanical relay,
 not authorship; the no-judgment-files rule is not violated. Note the relay in `_progress.md`.
@@ -465,6 +475,11 @@ from step 5 (Inner loop).
   on-disk marker is the only approval signal.
 - Triage has no gate; iterate the design with the human before the gate — chat is never the record.
 - Verify runs on every run; the claim ledger is never empty.
+- Never report a dispatched stage as still running, and never end a turn waiting on one, without
+  first checking its output file on disk — present and complete means done: read it and proceed.
+  An absent output file tells you only that the stage isn't done — not whether it's still
+  working or has died: report `status unknown; output not present` and offer to wait or
+  re-dispatch. Never infer "still running" or "stalled" from turn count or a human check-in.
 - Blindness per the role table's "do NOT read" column; judgment files are pasted, never granted;
   the repository itself is never blinded.
 - shepherd never commits `.shepherd/` paths. Run data stays ignored via the run's
