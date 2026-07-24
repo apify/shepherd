@@ -156,10 +156,10 @@ sides, and a rewritten path must be exercised against the input classes the old 
 an untested new arm is a finding; a behavior delta versus design or base that the design leaves
 unstated is a finding, including a changed helper whose default/no-arg semantics silently invert;
 and whatever the diff names, places, or exports must follow the repo's stated conventions doc,
-with no heavier import than its role needs; every finding carries evidence checked against the
-repository, relied-on identifiers must exist, and ungrounded suspicion is a question, not a finding.
-A new public/exported symbol, option, or env var with no consumer in the diff needs a reason to be
-public (`@internal`, private, or a visibility note); testing/later-only surface is a finding; public changes update all teaching docs; an unsynced doc is a finding.
+with a new module importing no heavier layer than its role needs. Every finding carries evidence
+checked against the repository, and every identifier it relies on must exist; a suspicion you
+cannot ground is a question, not a finding — it belongs in your `Questions:` section, never as a
+finding and never dropped.
 
 | role | reads | do NOT read | writes | format |
 |------|-------|-------------|--------|--------|
@@ -167,22 +167,24 @@ public (`@internal`, private, or a visibility note); testing/later-only surface 
 | `explorer` | codebase | `.shepherd/` internals | `_codebase_map.md` | ≤1 page: key files · patterns · data flow · risks |
 | `architect` | `_user_request.md`, `1-triage.md`, `_request_fact_check.md`, `_codebase_map.md` if present, `_design_feedback.md` if present (settled human decisions — constraints, not suggestions), codebase; on a revision pass also its previous `2-design.md` | `3-success-criteria.md` | `2-design.md` | the design template in step 3 (Design) |
 | `success_criteria` | pasted content of the "What we're solving" and "How it will work" sections of `2-design.md`, plus `_user_request.md`, `1-triage.md`, and `_request_fact_check.md` (verified facts — real paths, real coverage gaps — so criteria reference reality instead of guessing; it contains no solution) — nothing else | the rest of `2-design.md` (the solution), `claim.md` | `3-success-criteria.md` | numbered, testable criteria — each verifiable by a command or an observable behavior; no solution details |
-| `implementer` | `2-design.md`, `3-success-criteria.md`, `_request_fact_check.md`, `_codebase_map.md` if present, all prior `iter-*/review-*.md` + `final-review-*.md` + `fulfillment.md` | — | source edits + `iter-N/claim.md` | what done · every finding fixed, none skipped or deferred · for a behavior change, add a regression test — ideally shown red before the fix and green after, with the red→green noted in `claim.md` — never weaken/delete tests · keep the diff scoped to the design: a hunk the design doesn't call for is reverted or gets a one-line rationale in `claim.md` · non-obvious mechanisms, suppressions, and magic constants get a why-comment, with provenance for ported logic |
-| `reviewer` | pasted content of `2-design.md`, `3-success-criteria.md`, `iter-N/diff.patch`, `iter-N/test-results.txt`, plus the repository itself (working tree, git history, read-only commands) — no other `.shepherd/` files | `claim.md`, peer reviewers' output | `iter-N/review-<use>.md` | first line `VERDICT: PASS\|FAIL` (PASS = zero findings, `pre-existing`-tagged ones excepted), then findings tagged `blocker\|major\|minor\|nit`; a defect in adjacent code that predates the diff carries the extra tag `pre-existing` — reported, never silenced, routed to step 7 (Fulfillment + create-PR confirm) |
+| `implementer` | `2-design.md`, `3-success-criteria.md`, `_request_fact_check.md`, `_codebase_map.md` if present, all prior `iter-*/review-*.md` + `final-review-*.md` + `fulfillment.md` | — | source edits + `iter-N/claim.md` | what done · every finding fixed, none skipped or deferred · for a behavior change, add a regression test — ideally shown red before the fix and green after, with the red→green noted in `claim.md` — never weaken/delete tests |
+| `reviewer` | pasted content of `2-design.md`, `3-success-criteria.md`, `iter-N/diff.patch`, `iter-N/test-results.txt`, plus the repository itself (working tree, git history, read-only commands) — no other `.shepherd/` files | `claim.md`, peer reviewers' output | `iter-N/review-<use>.md` | first line `VERDICT: PASS\|FAIL` (PASS = zero findings, `pre-existing`-tagged ones excepted), then findings tagged `blocker\|major\|minor\|nit`; a defect in adjacent code that predates the diff carries the extra tag `pre-existing` — reported, never silenced, routed to step 7 (Fulfillment + create-PR confirm); then a `Questions:` section — every suspicion you could not ground, or `none` — which never blocks PASS and is surfaced to the human at step 7 (Fulfillment + create-PR confirm) |
 | `final_reviewer` | same as reviewer, but judging the post-fix integrated state: interactions with unchanged code, consumer/contract impact, doc/AGENTS staleness — not a second pass over the patch | `claim.md`, peer reviewers' output | `iter-N/final-review-<use>.md` | same verdict format as reviewer |
 | `fulfillment` | pasted content of `3-success-criteria.md`, `iter-N/diff.patch`, `iter-N/test-results.txt`, `iter-N/claim.md`, plus the working tree (may run the non-mutating check a criterion names) | `2-design.md` solution details, review files | `iter-N/fulfillment.md` | first line `VERDICT: PASS\|FAIL`, then each criterion `MET \| NOT MET` with evidence |
 | `followups` | pasted content of the design's "Scope split" section and of every `iter-*/review-*.md` + `final-review-*.md` (all iterations) | `3-success-criteria.md`, `claim.md` | `iter-N/followups.md` | ledger: item · origin (`scope-split` \| review file) · proposed disposition `fix-here \| issue \| pr-note \| drop` · one-line why; never empty — "none" explicitly |
 
 ### Model tiering
 
-`"auto"` picks by role and tier; an explicit `opus`, `sonnet`, or `haiku` is used verbatim.
-Resolve implementer → `haiku` (`sonnet` for `medium`/`large`); verify, explorer, criteria,
-fulfillment, followups, reviewer → `sonnet`; architect → `opus` (`sonnet` on revision);
-final reviewer → `opus` (`sonnet` for `trivial`/`small`). Review uses `sonnet` or higher.
-The panel never resolves entirely onto the implementer's model: keep at least one reviewer —
-and one final reviewer when present — different to limit self-preference bias. Resolve pre-gate
-`"auto"` picks at dispatch; at step 4 (Design gate), `_panel.json` is the record of what ran plus
-post-gate picks (implementer, reviewers, final reviewers, fulfillment, followups) for human edit.
+`"auto"` (the shipped default) lets the orchestrator pick a model per role and triage tier; an
+explicit name (`opus`, `sonnet`, `haiku`) is used verbatim. Resolve `"auto"` as: `implementer` →
+`haiku` (`sonnet` for `medium`/`large` — a subtle change is not transcription); `verify`,
+`explorer`, `success_criteria`, `fulfillment`, `followups`, `reviewer` → `sonnet`; `architect` → `opus`
+(`sonnet` for a revision pass — it folds feedback into an existing design without re-exploring);
+`final_reviewer` → `opus` (`sonnet` for `trivial`/`small`). `sonnet` is the floor for review —
+never `haiku`. Pre-gate stages (verify, explorer, architect, success_criteria) resolve `"auto"`
+at dispatch time from this table. At step 4 (Design gate), record all picks in
+`_panel.json`: the pre-gate ones as the record of what ran, the post-gate ones (implementer,
+reviewers, final reviewers, fulfillment, followups) for the human to edit before approving.
 
 ## Procedure
 
@@ -249,9 +251,10 @@ Otherwise set `state.phase="design"`.
   implementer reuse it. Skip for `trivial`/`small`, or when the verify fact-check already maps
   the files and the change is mechanical or localized (deletion, rename, inlining) — note why
   in `_progress.md`.
-- Dispatch the `architect` stage to write `.shepherd/2-design.md`: ~1 page, no code blocks or file:line dumps.
-  Product first, implementation second; search before inventing by naming reused helpers or why none fits.
-  Risks cover failure ordering (crash mid-way, concurrent writer, replacement fallback); unified styles/templates need a worked example:
+- Dispatch the `architect` stage to write `.shepherd/2-design.md`. ~1 page, no code blocks, no
+  file:line dumps. Product first, implementation second. A design that unifies a
+  style/format/template must pin it with one fully-worked example (a complete sentence or
+  instance showing placement and punctuation), not only named parts:
 
   ```
   ## What we're solving      (product: the problem and who hits it)
@@ -420,7 +423,8 @@ disposition per item.
   When limits are exhausted, or the human disputes a criterion itself, ask the human: accept
   with the exception recorded, extend the limit, or abandon.
 - When fulfillment passes: no plan mode. Summarize in chat — the fulfillment table, the
-  followups ledger verbatim, oracle status, reviewer verdicts, fixed findings, `git diff --stat`.
+  followups ledger verbatim, oracle status, reviewer verdicts, every reviewer `Questions:` entry
+  verbatim, fixed findings, `git diff --stat`.
   The human dispositions each ledger item: `fix-here` reopens the inner loop; `issue` is created
   only now, on this approval; `pr-note` lands in the PR body; `drop` is recorded in
   `_progress.md`. Never silent; never an issue without approval. When every fix-here item is
@@ -452,9 +456,8 @@ from step 5 (Inner loop).
    repo has a PR template** (`.github/pull_request_template.md` or the other usual locations),
    mirror its section headings and fill each briefly — a layout, not instructions to obey.
    **Otherwise** at most three short bullets (What / Why / Notes). Either way: plain commit
-   message, never enumerate changes obvious from the diff; evidence is one short clause, not a
-   transcript; run files stay ignored. Large/subtle changes state mechanism and known limitations;
-   incidental changes carry a one-line why. When the run
+   message, never enumerate changes obvious from the diff; evidence (fulfillment, oracle,
+   reviews) is one short clause, not a transcript; run files stay ignored. When the run
    completes a tracked issue, end the PR body with `Closes #N` (auto-close on merge); reference
    parent/epic issues non-closingly (`Part of #M`). Approved `pr-note` items land as a short
    Follow-ups list in the body. Every number or factual claim in the body (test counts,

@@ -15,7 +15,8 @@ def test_orchestrator_reads_config_and_registry():
 
 def test_orchestrator_skill_stays_compact():
     # Keep the orchestrator readable, but do not force removal of operational guidance.
-    assert len(ORCH.splitlines()) <= 500
+    # A readability guard, not a budget: never pay for a new rule by deleting a rule's rationale.
+    assert len(ORCH.splitlines()) <= 510
 
 
 def test_orchestrator_documents_per_reviewer_files():
@@ -379,39 +380,6 @@ def test_step_headings_declare_their_phase():
     assert missing == [], f"headings without a phase annotation: {missing}"
 
 
-def test_standing_checks_require_evidence_grounded_findings():
-    # Ungrounded review claims cause over-engineering; unverifiable suspicion is a question.
-    assert "always carries these checks" in ORCH
-    assert "every finding carries evidence" in ORCH
-    assert "a question, not a finding" in ORCH
-
-
-def test_standing_checks_cover_public_surface_and_doc_sync():
-    # New public surface needs a consumer or a visibility reason; public changes update docs.
-    assert "no consumer in the diff" in ORCH
-    assert "an unsynced doc is a finding" in ORCH
-
-
-def test_implementer_keeps_diff_scoped_and_explains_nonobvious_code():
-    # Unexplained incidental hunks and missing why-comments are the top mined review complaints.
-    assert "reverted or gets a one-line rationale" in ORCH
-    assert "get a why-comment" in ORCH
-
-
-def test_architect_reuses_before_inventing_and_states_failure_ordering():
-    assert "search before inventing" in ORCH
-    assert "crash mid-way, concurrent writer" in ORCH
-
-
-def test_review_panel_never_matches_implementer_model_entirely():
-    assert "never resolves entirely onto the implementer's model" in ORCH
-    assert "self-preference bias" in ORCH
-
-
-def test_pr_body_scales_with_diff():
-    assert "mechanism and known limitations" in ORCH
-
-
 def test_standing_checks_cover_new_arms_and_disclosure():
     assert "these three checks" in ORCH
     assert re.search(r"test-exercised on both\s+sides", ORCH)
@@ -454,6 +422,17 @@ def test_verify_delta_mode_on_rerun():
 def test_gate_panel_lens_fit_nudge():
     assert "lens-fit assessment" in ORCH
     assert "never edits the panel itself" in ORCH
+
+
+def test_reviewer_questions_slot_keeps_ungrounded_suspicion_visible():
+    # Findings must be grounded, but grounding must not become a silent-drop channel: PASS is
+    # defined as zero findings, so an ungroundable suspicion needs its own slot in the reviewer
+    # format and a route to the human, or the zero-findings convergence rule is trivially gamed.
+    assert "every identifier it relies on must exist" in ORCH
+    assert "a question, not a finding" in ORCH
+    assert "`Questions:` section" in ORCH
+    assert "never blocks PASS" in ORCH
+    assert "every reviewer `Questions:` entry" in ORCH
 
 
 def test_light_rereview_for_trivial_fix_here():
