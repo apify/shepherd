@@ -1,0 +1,48 @@
+name: Release
+
+on:
+  # Manual: run from the Actions tab when main holds everything the release should ship.
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: Version bump
+        required: true
+        type: choice
+        default: minor
+        options:
+          - patch
+          - minor
+          - major
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Bump version, tag, and release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          MANIFEST=.claude/.claude-plugin/plugin.json
+          CURRENT=$(jq -er '.version' "$MANIFEST")
+          IFS=. read -r MAJ MIN PAT <<< "$CURRENT"
+          case "${{ inputs.bump }}" in
+            major) VERSION="$((MAJ + 1)).0.0" ;;
+            minor) VERSION="$MAJ.$((MIN + 1)).0" ;;
+            patch) VERSION="$MAJ.$MIN.$((PAT + 1))" ;;
+          esac
+          jq --arg v "$VERSION" '.version = $v' "$MANIFEST" > tmp.json && mv tmp.json "$MANIFEST"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git commit -am "chore: release v$VERSION"
+          git push origin main
+          gh release create "v$VERSION" --target main --generate-notes
