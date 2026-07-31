@@ -239,8 +239,8 @@ def test_fulfillment_check_gates_the_pr():
 
 
 def test_orchestrator_has_no_review_only_mode():
-    # Review-only mode was removed: dedicated review skills cover "review PR/branch X"
-    # tasks; shepherd is implementation-only. No phase, triage field, or stage may remain.
+    # Review-only tasks are outside shepherd's implementation workflow. No dedicated
+    # phase, triage field, or stage may remain.
     assert "review-run" not in ORCH
     assert "review-only" not in ORCH.lower()
     assert "review_only" not in ORCH

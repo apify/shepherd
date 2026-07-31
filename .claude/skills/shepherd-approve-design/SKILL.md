@@ -1,6 +1,6 @@
 ---
 name: shepherd-approve-design
-description: HUMAN-ONLY shepherd design approval. Run after reviewing .shepherd/2-design.md and .shepherd/_panel.json. Records the approved panel in _state.json, writes .shepherd/_design.approved, and hands control back to /shepherd. The agent cannot invoke this.
+description: HUMAN-ONLY shepherd design approval. Run after reviewing .shepherd/2-design.md, .shepherd/3-success-criteria.md, and .shepherd/_panel.json. Records the approved panel in _state.json, writes .shepherd/_design.approved, and hands control back to /shepherd. The agent cannot invoke this.
 disable-model-invocation: true
 allowed-tools: Read, Bash, Skill
 argument-hint: ""
@@ -8,7 +8,7 @@ argument-hint: ""
 
 # Approve design
 
-Record human approval of the design and review panel so implementation can begin.
+Record human approval of the design, success criteria, and review panel so implementation can begin.
 
 1. Read `.shepherd/2-design.md`, `.shepherd/3-success-criteria.md`, and `.shepherd/_panel.json`;
    stop if any is missing. Approval covers all three.
