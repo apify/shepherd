@@ -94,7 +94,7 @@ Core/shared or public-contract changes are `medium` at minimum regardless of lin
     "reviewers": [{ "use": "staff-review", "model": "auto" }],
     "final_reviewers": [
       { "use": "thermonuclear", "model": "auto" },
-      { "use": "ponytail-review", "model": "auto" }
+      { "use": "ponytail-review", "model": "sonnet" }
     ]
   },
   "oracle": { "commands": [] },
@@ -109,7 +109,9 @@ Each stage entry takes a `model`. `"auto"` (the default) lets shepherd pick per 
 tier — `haiku` for a small transcription-style implementer, `sonnet` for
 verify/criteria/fulfillment/reviewers, `opus` for the architect and final reviewers — scaling up
 for `medium`/`large` and down for
-`trivial`/`small`. A concrete name (`opus`, `sonnet`, `haiku`) pins the stage and overrides auto.
+`trivial`/`small`. A concrete name (`opus`, `sonnet`, `haiku`) pins the stage and overrides auto. The shipped
+default pins `ponytail-review` to `sonnet`: a deletion/leanness lens whose findings are minor/nit
+by construction doesn't earn `opus`, while `sonnet` keeps the review floor.
 Single stages may be **model-only** (`{ "model": "..." }` with no `use`): built-in role behavior on
 that model. All `"auto"` picks are resolved and shown at the design gate, where you can adjust any
 before approving.

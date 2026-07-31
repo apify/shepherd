@@ -13,6 +13,13 @@ def test_default_config_is_valid():
     assert validate(load_json(CONFIG), REGISTRY) == []
 
 
+def test_default_config_pins_ponytail_to_sonnet():
+    # A deletion/leanness lens doesn't earn opus; sonnet stays the review floor because
+    # under zero-findings convergence a hallucinated nit costs a full fix round.
+    finals = {e["use"]: e.get("model") for e in load_json(CONFIG)["stages"]["final_reviewers"]}
+    assert finals["ponytail-review"] == "sonnet"
+
+
 def test_unknown_use_reported():
     bad = load_json(CONFIG)
     bad["stages"]["implementer"] = {"use": "nope"}
