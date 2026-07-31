@@ -15,7 +15,8 @@ def test_orchestrator_reads_config_and_registry():
 
 def test_orchestrator_skill_stays_compact():
     # Keep the orchestrator readable, but do not force removal of operational guidance.
-    assert len(ORCH.splitlines()) <= 500
+    # A readability guard, not a budget: never pay for a new rule by deleting a rule's rationale.
+    assert len(ORCH.splitlines()) <= 510
 
 
 def test_orchestrator_documents_per_reviewer_files():
@@ -421,6 +422,17 @@ def test_verify_delta_mode_on_rerun():
 def test_gate_panel_lens_fit_nudge():
     assert "lens-fit assessment" in ORCH
     assert "never edits the panel itself" in ORCH
+
+
+def test_reviewer_questions_slot_keeps_ungrounded_suspicion_visible():
+    # Findings must be grounded, but grounding must not become a silent-drop channel: PASS is
+    # defined as zero findings, so an ungroundable suspicion needs its own slot in the reviewer
+    # format and a route to the human, or the zero-findings convergence rule is trivially gamed.
+    assert "every identifier it relies on must exist" in ORCH
+    assert "a question, not a finding" in ORCH
+    assert "`Questions:` section" in ORCH
+    assert "never blocks PASS" in ORCH
+    assert "every reviewer `Questions:` entry" in ORCH
 
 
 def test_light_rereview_for_trivial_fix_here():

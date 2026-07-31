@@ -156,7 +156,10 @@ sides, and a rewritten path must be exercised against the input classes the old 
 an untested new arm is a finding; a behavior delta versus design or base that the design leaves
 unstated is a finding, including a changed helper whose default/no-arg semantics silently invert;
 and whatever the diff names, places, or exports must follow the repo's stated conventions doc,
-with a new module importing no heavier layer than its role needs.
+with a new module importing no heavier layer than its role needs. Every finding carries evidence
+checked against the repository, and every identifier it relies on must exist; a suspicion you
+cannot ground is a question, not a finding — it belongs in your `Questions:` section, never as a
+finding and never dropped.
 
 | role | reads | do NOT read | writes | format |
 |------|-------|-------------|--------|--------|
@@ -165,7 +168,7 @@ with a new module importing no heavier layer than its role needs.
 | `architect` | `_user_request.md`, `1-triage.md`, `_request_fact_check.md`, `_codebase_map.md` if present, `_design_feedback.md` if present (settled human decisions — constraints, not suggestions), codebase; on a revision pass also its previous `2-design.md` | `3-success-criteria.md` | `2-design.md` | the design template in step 3 (Design) |
 | `success_criteria` | pasted content of the "What we're solving" and "How it will work" sections of `2-design.md`, plus `_user_request.md`, `1-triage.md`, and `_request_fact_check.md` (verified facts — real paths, real coverage gaps — so criteria reference reality instead of guessing; it contains no solution) — nothing else | the rest of `2-design.md` (the solution), `claim.md` | `3-success-criteria.md` | numbered, testable criteria — each verifiable by a command or an observable behavior; no solution details |
 | `implementer` | `2-design.md`, `3-success-criteria.md`, `_request_fact_check.md`, `_codebase_map.md` if present, all prior `iter-*/review-*.md` + `final-review-*.md` + `fulfillment.md` | — | source edits + `iter-N/claim.md` | what done · every finding fixed, none skipped or deferred · for a behavior change, add a regression test — ideally shown red before the fix and green after, with the red→green noted in `claim.md` — never weaken/delete tests |
-| `reviewer` | pasted content of `2-design.md`, `3-success-criteria.md`, `iter-N/diff.patch`, `iter-N/test-results.txt`, plus the repository itself (working tree, git history, read-only commands) — no other `.shepherd/` files | `claim.md`, peer reviewers' output | `iter-N/review-<use>.md` | first line `VERDICT: PASS\|FAIL` (PASS = zero findings, `pre-existing`-tagged ones excepted), then findings tagged `blocker\|major\|minor\|nit`; a defect in adjacent code that predates the diff carries the extra tag `pre-existing` — reported, never silenced, routed to step 7 (Fulfillment + create-PR confirm) |
+| `reviewer` | pasted content of `2-design.md`, `3-success-criteria.md`, `iter-N/diff.patch`, `iter-N/test-results.txt`, plus the repository itself (working tree, git history, read-only commands) — no other `.shepherd/` files | `claim.md`, peer reviewers' output | `iter-N/review-<use>.md` | first line `VERDICT: PASS\|FAIL` (PASS = zero findings, `pre-existing`-tagged ones excepted), then findings tagged `blocker\|major\|minor\|nit`; a defect in adjacent code that predates the diff carries the extra tag `pre-existing` — reported, never silenced, routed to step 7 (Fulfillment + create-PR confirm); then a `Questions:` section — every suspicion you could not ground, or `none` — which never blocks PASS and is surfaced to the human at step 7 (Fulfillment + create-PR confirm) |
 | `final_reviewer` | same as reviewer, but judging the post-fix integrated state: interactions with unchanged code, consumer/contract impact, doc/AGENTS staleness — not a second pass over the patch | `claim.md`, peer reviewers' output | `iter-N/final-review-<use>.md` | same verdict format as reviewer |
 | `fulfillment` | pasted content of `3-success-criteria.md`, `iter-N/diff.patch`, `iter-N/test-results.txt`, `iter-N/claim.md`, plus the working tree (may run the non-mutating check a criterion names) | `2-design.md` solution details, review files | `iter-N/fulfillment.md` | first line `VERDICT: PASS\|FAIL`, then each criterion `MET \| NOT MET` with evidence |
 | `followups` | pasted content of the design's "Scope split" section and of every `iter-*/review-*.md` + `final-review-*.md` (all iterations) | `3-success-criteria.md`, `claim.md` | `iter-N/followups.md` | ledger: item · origin (`scope-split` \| review file) · proposed disposition `fix-here \| issue \| pr-note \| drop` · one-line why; never empty — "none" explicitly |
@@ -420,7 +423,8 @@ disposition per item.
   When limits are exhausted, or the human disputes a criterion itself, ask the human: accept
   with the exception recorded, extend the limit, or abandon.
 - When fulfillment passes: no plan mode. Summarize in chat — the fulfillment table, the
-  followups ledger verbatim, oracle status, reviewer verdicts, fixed findings, `git diff --stat`.
+  followups ledger verbatim, oracle status, reviewer verdicts, every reviewer `Questions:` entry
+  verbatim, fixed findings, `git diff --stat`.
   The human dispositions each ledger item: `fix-here` reopens the inner loop; `issue` is created
   only now, on this approval; `pr-note` lands in the PR body; `drop` is recorded in
   `_progress.md`. Never silent; never an issue without approval. When every fix-here item is
