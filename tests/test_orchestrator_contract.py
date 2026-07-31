@@ -16,7 +16,7 @@ def test_orchestrator_reads_config_and_registry():
 def test_orchestrator_skill_stays_compact():
     # Keep the orchestrator readable, but do not force removal of operational guidance.
     # A readability guard, not a budget: never pay for a new rule by deleting a rule's rationale.
-    assert len(ORCH.splitlines()) <= 510
+    assert len(ORCH.splitlines()) <= 500
 
 
 def test_orchestrator_documents_per_reviewer_files():
@@ -144,20 +144,15 @@ def test_approve_design_records_the_approved_panel():
     assert 'state["iteration"] = 1' in APPROVE_DESIGN
 
 
-def test_approve_design_routes_review_only_runs_to_review_mode():
-    assert "state_review_only = state.get" in APPROVE_DESIGN
-    assert "review-only" in APPROVE_DESIGN
-    assert 'state["phase"] = "review-run"' in APPROVE_DESIGN
-    assert 'state["phase"] = "inner-loop"' in APPROVE_DESIGN
-
-
-def test_approve_design_review_only_parse_accepts_colon_and_question_mark():
-    assert "review-only[?:]" in APPROVE_DESIGN
+def test_approve_design_has_no_review_only_routing():
+    # Review-only mode was removed; approval always routes to the inner loop.
+    assert "review-run" not in APPROVE_DESIGN
+    assert "review_only" not in APPROVE_DESIGN
 
 
 def test_orchestrator_tracks_resumable_phases():
     assert "`triage`, `verify`, `design`" in ORCH
-    for phase in ("inner-loop", "final-review", "review-run", "create-pr"):
+    for phase in ("inner-loop", "final-review", "create-pr"):
         assert phase in ORCH
     assert 'state.phase="create-pr"' in ORCH
     # A finished run is terminal; resume must not re-commit.
@@ -243,19 +238,12 @@ def test_fulfillment_check_gates_the_pr():
     assert "No PR without fulfillment" in ORCH
 
 
-def test_orchestrator_has_first_class_review_mode():
-    # Review-only tasks skip implement, run the panel on the existing diff, stop at findings.
-    assert "Review run" in ORCH
-    assert "review-only" in ORCH
-    assert "do NOT implement" in ORCH
-    # A follow-up fix run must not collide with the review-run artifacts.
-    assert "next free `iter-N`" in ORCH
-    # A finished review run is terminal; only an explicit human request reopens it.
-    assert "a review-only run ends here" in ORCH
-    # Review-only runs skip success criteria; the review scope is the whole contract.
-    assert "nothing gets built" in ORCH
-    # The PR branch is checked out at triage so verify/design/reviewers all read it.
-    assert "every later stage reads that checkout" in ORCH
+def test_orchestrator_has_no_review_only_mode():
+    # Review-only mode was removed: dedicated review skills cover "review PR/branch X"
+    # tasks; shepherd is implementation-only. No phase, triage field, or stage may remain.
+    assert "review-run" not in ORCH
+    assert "review-only" not in ORCH.lower()
+    assert "review_only" not in ORCH
 
 
 def test_orchestrator_accept_approves_revise_iterates_no_self_approve():
@@ -375,7 +363,7 @@ def test_step_headings_declare_their_phase():
     # Each procedure heading carries its _state.json phase so the prose vocabulary
     # and the state machine stay one system.
     headings = re.findall(r"^### \d+\..*$", ORCH, flags=re.M)
-    assert len(headings) == 9
+    assert len(headings) == 8
     missing = [h for h in headings if "`phase=" not in h]
     assert missing == [], f"headings without a phase annotation: {missing}"
 
