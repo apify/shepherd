@@ -1,6 +1,6 @@
 ---
 name: shepherd-approve-design
-description: HUMAN-ONLY shepherd design approval. Run after reviewing .shepherd/2-design.md and .shepherd/_panel.json. Records the approved panel in _state.json, writes .shepherd/_design.approved, and hands control back to /shepherd. The agent cannot invoke this.
+description: HUMAN-ONLY shepherd design approval. Run after reviewing .shepherd/2-design.md, .shepherd/3-success-criteria.md, and .shepherd/_panel.json. Records the approved panel in _state.json, writes .shepherd/_design.approved, and hands control back to /shepherd. The agent cannot invoke this.
 disable-model-invocation: true
 allowed-tools: Read, Bash, Skill
 argument-hint: ""
@@ -8,18 +8,16 @@ argument-hint: ""
 
 # Approve design
 
-Record human approval of the design and review panel so implementation can begin.
+Record human approval of the design, success criteria, and review panel so implementation can begin.
 
 1. Read `.shepherd/2-design.md`, `.shepherd/3-success-criteria.md`, and `.shepherd/_panel.json`;
-   stop if any is missing — except `3-success-criteria.md`, which review-only runs don't create.
-   Approval covers all three (two on a review-only run).
+   stop if any is missing. Approval covers all three.
 2. Summarize the approach, success criteria, reviewers, final reviewers, limits, and panel
    reason in 3-5 lines.
 3. Copy the approved panel into `_state.json`:
    ```bash
    python3 - <<'PY'
    import json
-   import re
    from pathlib import Path
    state_path = Path(".shepherd/_state.json")
    panel = json.loads(Path(".shepherd/_panel.json").read_text())
@@ -27,20 +25,8 @@ Record human approval of the design and review panel so implementation can begin
        if key not in panel:
            raise SystemExit(f"_panel.json missing required key: {key}")
    state = json.loads(state_path.read_text()) if state_path.exists() else {}
-   triage = Path(".shepherd/1-triage.md")
-   triage_text = triage.read_text().lower() if triage.exists() else ""
-   state_review_only = state.get("review_only")
-   review_only = (
-       state_review_only is True
-       or str(state_review_only).lower() == "true"
-       or bool(re.search(r"review-only[?:]?\s*`?yes`?", triage_text))
-   )
    state["panel"] = panel
-   state["review_only"] = review_only
-   if review_only:
-       state["phase"] = "review-run"
-   else:
-       state["phase"] = "inner-loop"
+   state["phase"] = "inner-loop"
    state["iteration"] = 1
    state_path.write_text(json.dumps(state, indent=2, sort_keys=True) + "\n")
    PY
@@ -52,6 +38,6 @@ Record human approval of the design and review panel so implementation can begin
      "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$(git rev-parse HEAD 2>/dev/null || echo none)" \
      > .shepherd/_design.approved
    ```
-5. Confirm briefly, then invoke `/shepherd` so it resumes into review mode or implementation.
+5. Confirm briefly, then invoke `/shepherd` so it resumes into implementation.
 
 Do not edit source here.

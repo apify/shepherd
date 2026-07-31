@@ -49,12 +49,8 @@ flowchart TD
     Verify -->|stale / already fixed| Stop
     Draft --> Iterate["Iterate with the human<br/>feedback file + revision passes"]
     Iterate --> Gate{"Design gate<br/>approve design + criteria + panel"}
-    Gate -->|approved| ReviewOnly{"Review-only task?"}
+    Gate -->|approved| Implement["Implement approved design"]
     Gate -->|revise| Iterate
-    ReviewOnly -->|yes| ExistingDiff["Build diff from branch/PR"]
-    ExistingDiff --> ReviewPanel["Run approved reviewers"]
-    ReviewPanel --> Findings["Report findings"]
-    ReviewOnly -->|no| Implement["Implement approved design"]
     Implement --> Oracle["Run oracle commands"]
     Oracle --> Reviewers["Run blind reviewers"]
     Reviewers --> Clean{"Oracle green,<br/>all findings fixed?"}
@@ -104,11 +100,6 @@ everything into the conversation: the full `2-design.md` and `3-success-criteria
 pasted or rendered as an Artifact (not just linked on disk), and run progress shows as a
 one-line status at each phase transition — never assume the human can open `.shepherd/`
 files or type a slash-command.
-
-Review-only work is first-class. For a task like "review PR/branch X", shepherd runs
-triage, verify, design (the review scope), the approved review panel against the
-existing diff, and a findings summary. It only enters the implementation loop if you ask
-it to fix those findings.
 
 ## Commands
 

@@ -7,7 +7,7 @@
     {
       "name": "shepherd",
       "source": "./.claude",
-      "description": "Human-gated Claude Code loop for implementation and review work. Includes /shepherd plus the human-only /shepherd-approve-design and /shepherd-approve-create-pr fallbacks."
+      "description": "Human-gated Claude Code loop for implementation work. Includes /shepherd plus the human-only /shepherd-approve-design and /shepherd-approve-create-pr fallbacks."
     }
   ]
 }
