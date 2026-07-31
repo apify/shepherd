@@ -28,9 +28,13 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: main
+          # An org ruleset requires the Apify pull request toolkit workflow on main, so a push
+          # authenticated as github-actions is rejected. The service account is a ruleset bypass
+          # actor; every apify repo releases through this token.
+          token: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
       - name: Bump version, tag, and release
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
         run: |
           MANIFEST=.claude/.claude-plugin/plugin.json
           CURRENT=$(jq -er '.version' "$MANIFEST")
@@ -43,6 +47,6 @@ jobs:
           jq --arg v "$VERSION" '.version = $v' "$MANIFEST" > tmp.json && mv tmp.json "$MANIFEST"
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git commit -am "chore: release v$VERSION"
+          git commit -am "chore: release v$VERSION [skip ci]"
           git push origin main
           gh release create "v$VERSION" --target main --generate-notes
