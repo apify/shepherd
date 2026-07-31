@@ -423,7 +423,49 @@ def test_reviewer_questions_slot_keeps_ungrounded_suspicion_visible():
     assert "every reviewer `Questions:` entry" in ORCH
 
 
-def test_light_rereview_for_trivial_fix_here():
-    assert "delta-focused panel reviewer plus a fulfillment-delta check" in ORCH
-    assert "picks the mode" in ORCH
-    assert "escalates back to the full step 5" in ORCH
+def test_docs_only_round_decays_to_pr_note():
+    # Run #1140 iters 5-9 burned ~1.2M tokens on comment polish that changed no behavior and
+    # introduced new wrong comments; after a doc/comment-only round the orchestrator proposes
+    # pr-note instead of another fix round, and the human decides.
+    assert "Decay rule" in ORCH
+    assert "all doc/comment-only" in ORCH
+    assert "comment-polish rounds churn new wrong comments" in ORCH
+    assert "for routing only" in ORCH
+    assert "followups must carry them verbatim" in ORCH
+    assert "convergence with only human-accepted open findings" in ORCH
+    # The decay rule replaced the light re-review path (see issue #20); it must stay gone.
+    assert "delta-focused" not in ORCH
+
+
+def test_reviewer_questions_are_verified_never_applied():
+    # Run #1140: a reviewer question's suggestion was relayed as a fix, built, then reverted
+    # (~500k tokens, net-zero diff). Questions route to the implementer only for verification.
+    assert "question, not an instruction" in ORCH
+    assert "verification-only" in ORCH
+    assert "no source edits and no normal implementer write contract" in ORCH
+    assert "question-verification.md" in ORCH
+    assert "review, question-verification, or fulfillment files" in ORCH
+    assert "NO DEFECT | CONFIRMED FINDING" in ORCH
+    assert ORCH.index("question-verification.md`, tagging each") < ORCH.index(
+        "Only after that artifact is complete,"
+    )
+
+
+def test_followups_reads_the_issue_tracker():
+    # Run #1140: followups dropped items with open issues and filed a duplicate — three of 27
+    # ledger rows wrong for the price of one API call.
+    assert "`gh issue list`, `gh pr list`" in ORCH
+    assert "duplicates or extends" in ORCH
+
+
+def test_dispatch_records_start_time_for_liveness():
+    # Run #1140: an implementer died with a 110-byte transcript and surfaced ~9h later.
+    # File presence cannot distinguish still-working from dead; elapsed time is the signal.
+    assert "dispatch's start time" in ORCH
+    assert "time since dispatch" in ORCH
+
+
+def test_new_files_are_diffed_with_no_index():
+    # git diff <ref> -- <path> is silent for untracked files; a per-file check on five new
+    # files reported "unchanged" and masked a leftover workaround (run #1140).
+    assert "git diff --no-index /dev/null <file>" in ORCH
