@@ -1,0 +1,26 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+    paths: [".claude/.claude-plugin/plugin.json"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create release when the version is new
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION=$(jq -r '.version // empty' .claude/.claude-plugin/plugin.json)
+          [ -n "$VERSION" ] || { echo "no version in plugin.json"; exit 1; }
+          if gh release view "v$VERSION" --json tagName >/dev/null 2>&1; then
+            echo "v$VERSION already released — nothing to do"
+            exit 0
+          fi
+          gh release create "v$VERSION" --generate-notes

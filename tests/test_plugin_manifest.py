@@ -25,6 +25,11 @@ def test_plugin_manifest_names_shepherd():
     assert PLUGIN["name"] == "shepherd"
 
 
+def test_plugin_manifest_has_a_version():
+    # The release workflow tags v<version> on main; an absent field would break it.
+    assert PLUGIN["version"]
+
+
 def test_marketplace_has_required_fields():
     assert MARKETPLACE["name"]
     assert MARKETPLACE["owner"]["name"]
