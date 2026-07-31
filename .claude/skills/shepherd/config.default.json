@@ -5,7 +5,7 @@
     ],
     "final_reviewers": [
       { "use": "thermonuclear",   "model": "auto" },
-      { "use": "ponytail-review", "model": "auto" }
+      { "use": "ponytail-review", "model": "sonnet" }
     ]
   },
   "oracle": {
