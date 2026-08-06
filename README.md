@@ -91,8 +91,11 @@ bump up or down before approving. Approval covers the design, the success criter
 the panel together.
 
 Convergence is zero-findings: every finding gets fixed, whatever its severity — nits too;
-nothing is skipped and nothing waits on your nudge. You only hear about open findings if
-the iteration limits run out first. No PR happens without fulfillment: every criterion
+nothing is skipped and nothing waits on your nudge. One proposal-based exception: after a
+round whose findings are all doc/comment-only, shepherd proposes recording them as PR
+notes instead of another fix round, and you decide; accepted findings remain visible in the
+final follow-up ledger and PR body. Otherwise, you only hear about open findings if the
+iteration limits run out first. No PR happens without fulfillment: every criterion
 `MET`, or you explicitly accept the recorded exception.
 
 On web/mobile/remote sessions the human sees only the chat stream, so shepherd surfaces

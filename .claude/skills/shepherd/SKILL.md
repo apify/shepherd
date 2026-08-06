@@ -10,8 +10,9 @@ You are the orchestrator. Keep run data in `.shepherd/`; `.claude/skills/` is to
 
 **The orchestrator routes; subagents judge; files are the only handoff.** The orchestrator never
 authors a judgment file (`_request_fact_check.md`, `2-design.md`, `3-success-criteria.md`,
-review or fulfillment files; persisting one verbatim as a relay is not authorship). Everything
-else in `.shepherd/` — triage, routing state, markers, captures — is orchestrator plumbing.
+review, question-verification, or fulfillment files; persisting one verbatim as a relay is not
+authorship). Everything else in `.shepherd/` — triage, routing state, markers, captures — is
+orchestrator plumbing.
 
 Two human gates, never self-granted: the **design gate** before any source edit and the
 **create-PR confirm** before any git write. Triage has no gate. The loop:
@@ -30,9 +31,9 @@ ephemeral; the files are the record.
   `_design_feedback.md`, `_panel.json`, `_state.json`, `_progress.md`, `_design.approved`,
   `_create_pr.approved`.
 - Per iteration in `iter-N/`: `claim.md`, `review-<use>.md`, `final-review-<use>.md`,
-  `fulfillment.md`, `followups.md`, and the regenerable (gitignored) `diff.patch`, `test-results.txt`
-  (plus `baseline.txt` and `predirty.txt` in `iter-1/` only — the pre-change oracle metrics
-  and any pre-existing dirty paths).
+  `question-verification.md`, `fulfillment.md`, `followups.md`, and the regenerable (gitignored)
+  `diff.patch`, `test-results.txt` (plus `baseline.txt` and `predirty.txt` in `iter-1/` only —
+  the pre-change oracle metrics and any pre-existing dirty paths).
 
 **Why one file per stage:** each stage writes one file and each role reads ONLY what it needs, so
 stage context stays scoped and judgments stay independent. Reviewers judge the diff against
@@ -97,9 +98,8 @@ Resume by phase:
 - `phase=design-gate` without the marker → re-present the design + panel (step 4, Design gate) and wait.
 - `phase=inner-loop` or `final-review` → continue that phase.
 - `phase=create-pr` + `_create_pr.approved` → go to step 8 (Finish).
-- `phase=create-pr` without the marker → dispatch either fulfillment or followups if its latest
-  artifact (`iter-N/fulfillment.md` or `iter-N/followups.md`) is missing, then act on their
-  verdicts per step 7 (Fulfillment).
+- `phase=create-pr` without the marker → per step 7 (Fulfillment), finish each missing artifact —
+  question verification first, then fulfillment or followups — and re-present the gate.
 - `phase=done` → the run is complete; report and stop.
 - Otherwise, re-announce the stop being waited on and stop.
 
@@ -134,8 +134,10 @@ Method line omitted. For stage key `K` with assignment `S`:
    present **and** verdicted. An overwrite-in-place re-dispatch (architect revision, a
    `success_criteria` re-run) starts with the file already present: record its content hash in
    `_progress.md` at dispatch time and treat it done once a fresh hash differs — never mtime/size.
-   Check output files on disk before any status claim, every turn, not only at resume; no
-   idle-polling loop.
+   Record every dispatch's start time in `_progress.md`; a `status unknown` report states the
+   time since dispatch — file presence cannot distinguish still-working from dead, so elapsed
+   time is what lets the human judge. Check output files on disk before any status claim, every
+   turn, not only at resume; no idle-polling loop.
 
 If the dispatched agent has no write access, it returns the artifact verbatim as its final
 message and the orchestrator persists it to `{role.writes}` **unchanged** — a mechanical relay,
@@ -170,7 +172,7 @@ finding and never dropped.
 | `reviewer` | pasted content of `2-design.md`, `3-success-criteria.md`, `iter-N/diff.patch`, `iter-N/test-results.txt`, plus the repository itself (working tree, git history, read-only commands) — no other `.shepherd/` files | `claim.md`, peer reviewers' output | `iter-N/review-<use>.md` | first line `VERDICT: PASS\|FAIL` (PASS = zero findings, `pre-existing`-tagged ones excepted), then findings tagged `blocker\|major\|minor\|nit`; a defect in adjacent code that predates the diff carries the extra tag `pre-existing` — reported, never silenced, routed to step 7 (Fulfillment + create-PR confirm); then a `Questions:` section — every suspicion you could not ground, or `none` — which never blocks PASS and is surfaced to the human at the same gate |
 | `final_reviewer` | same as reviewer, but judging the post-fix integrated state: interactions with unchanged code, consumer/contract impact, doc/AGENTS staleness — not a second pass over the patch | `claim.md`, peer reviewers' output | `iter-N/final-review-<use>.md` | same verdict format as reviewer |
 | `fulfillment` | pasted content of `3-success-criteria.md`, `iter-N/diff.patch`, `iter-N/test-results.txt`, `iter-N/claim.md`, plus the working tree (may run the non-mutating check a criterion names) | `2-design.md` solution details, review files | `iter-N/fulfillment.md` | first line `VERDICT: PASS\|FAIL`, then each criterion `MET \| NOT MET` with evidence |
-| `followups` | pasted content of the design's "Scope split" section and of every `iter-*/review-*.md` + `final-review-*.md` (all iterations) | `3-success-criteria.md`, `claim.md` | `iter-N/followups.md` | ledger: item · origin (`scope-split` \| review file) · proposed disposition `fix-here \| issue \| pr-note \| drop` · one-line why; never empty — "none" explicitly |
+| `followups` | pasted Scope split, all review files, accepted-open-finding decisions from `_progress.md`, `question-verification.md` if present, plus open issues and PRs (`gh issue list`, `gh pr list`) — cite an existing issue it duplicates or extends | `3-success-criteria.md`, `claim.md` | `iter-N/followups.md` | ledger: item · origin (`scope-split` \| review file \| `question-verification`) · proposed disposition `fix-here \| issue \| pr-note \| drop` · one-line why; include every pre-existing, human-accepted open, and confirmed-question finding; never empty — "none" explicitly |
 
 ### Model tiering
 
@@ -369,55 +371,62 @@ For each iteration `N`:
    suite). Expected deltas (e.g. tests the design adds) must be named in `claim.md`.
 4. Check `git status --porcelain` again (ignore `.shepherd/`). If unrelated changes appeared —
    paths neither in `iter-1/predirty.txt` nor edited by this run — stop for human direction.
-   Write `diff.patch` only for the run's own changes; pre-dirty paths never enter it.
+   Write `diff.patch` only for the run's own changes; pre-dirty paths never enter it. A file
+   new in this run is silent in `git diff <ref>` — include it via
+   `git diff --no-index /dev/null <file>`, and use the same form for any per-file check on a
+   new file.
 5. Dispatch panel reviewers in parallel, each given the pasted content of `2-design.md`,
    `3-success-criteria.md`, `diff.patch`, and `test-results.txt`, plus read access to the
    repository. They stay blind to `claim.md` and peer reviews.
 6. Converge when the oracle is green and baseline-consistent and every reviewer verdict is PASS
    — every finding gets fixed, whatever its severity: nits too (`pre-existing`-tagged findings
    skip the loop and route to the followups ledger at step 7 (Fulfillment + create-PR confirm));
-   the implementer
-   never skips or defers one. The other exception is the human's: a finding fixable only by
-   changing the approved design or criteria (see Hard rules). Otherwise iterate until
+   the implementer never skips or defers one. The other exception is the human's: a finding
+   fixable only by changing the approved design or criteria (see Hard rules). Decay rule: when
+   a round's open findings are all doc/comment-only (no behavior or signature change), show the
+   exact list and propose accepting them as `pr-note` items instead of another fix round —
+   comment-polish rounds churn new wrong comments. A fix reply iterates. An accept reply records
+   the named findings and decision in `_progress.md`; for routing only, those findings no longer
+   block final review or step 7, and followups must carry them verbatim. The same rule applies in
+   final review; any new or unaccepted finding still blocks. Otherwise iterate until
    `inner_iterations`; then stop and present a findings table (fixed / open), the oracle
    status, and the options: extend the limit, accept with open findings recorded, or abandon.
    On abandon, record the decision in `_progress.md` and set `state.phase="done"`; leave the
    working-tree edits for the human to keep or discard — never revert them yourself.
 
-When converged, set `state.phase="final-review"` if the panel has final reviewers; otherwise set
-`state.phase="create-pr"`.
+When converged, including convergence with only human-accepted open findings, set
+`state.phase="final-review"` if the panel has final reviewers; otherwise `state.phase="create-pr"`.
 
 ### 6. Final review — `phase=final-review`
 
 Run panel `final_reviewers` in parallel (same pasted-content rule, plus working-tree access).
-Any finding triggers a targeted implementer fix and a re-run of the final reviewers (and the
-regular reviewers too when the fix is broad), staying in `phase="final-review"`, bounded by
+Any unaccepted finding triggers a targeted implementer fix and a re-run of the final reviewers
+(and the regular reviewers too when the fix is broad), staying in `phase="final-review"`, bounded by
 `final_review_rounds`. Each fix round advances to the next free `iter-N` (claim, oracle run,
 diff, review files) — never overwrite an earlier round's files. When clean by the
 step 5 (Inner loop) convergence rule, set `state.phase="create-pr"`.
 
 ### 7. Fulfillment + create-PR confirm — `phase=create-pr`
 
-On entering `phase="create-pr"`, dispatch the `fulfillment` stage: it judges the diff, tests,
-and claim against `3-success-criteria.md` and writes `iter-N/fulfillment.md` with each criterion
-`MET | NOT MET`. Also dispatch the `followups` stage: it compiles the design's Scope split
-leftovers and every `pre-existing`-tagged finding into `iter-N/followups.md` with a proposed
-disposition per item.
+On entering `phase="create-pr"`, dispatch `fulfillment`. Before `followups`, if any reviewer
+`Questions:` entry is not `none`, dispatch the configured implementer model in **verification-only** mode:
+no source edits and no normal implementer write contract; it reads the exact questions and repo,
+then writes `iter-N/question-verification.md`, tagging each `NO DEFECT | CONFIRMED FINDING` with
+evidence and severity. A suggestion alone is not evidence. Only after that artifact is complete,
+dispatch `followups`; it compiles Scope split leftovers, pre-existing and human-accepted open
+findings, and every confirmed question finding into `iter-N/followups.md`.
 
 - Any `NOT MET` criterion reopens the inner loop like a blocker finding, within the same limits.
   When limits are exhausted, or the human disputes a criterion itself, ask the human: accept
   with the exception recorded, extend the limit, or abandon.
 - When fulfillment passes: no plan mode. Summarize in chat — the fulfillment table, the
-  followups ledger verbatim, oracle status, reviewer verdicts, every reviewer `Questions:` entry
-  verbatim, fixed findings, `git diff --stat`.
+  followups ledger and question verification verbatim, oracle status, reviewer verdicts,
+  every reviewer `Questions:` entry verbatim, fixed findings, `git diff --stat`.
   The human dispositions each ledger item: `fix-here` reopens the inner loop; `issue` is created
   only now, on this approval; `pr-note` lands in the PR body; `drop` is recorded in
-  `_progress.md`. Never silent; never an issue without approval. When every fix-here item is
-  doc/comment/style-only with no behavior or signature change (combined ≤10 lines), propose —
-  in the same gate exchange, with each option's cost — converging that fix round via ONE
-  delta-focused panel reviewer plus a fulfillment-delta check instead of the full panel; the
-  human's reply picks the mode, and any finding, oracle delta, or out-of-scope change in a
-  light round escalates back to the full step 5 (Inner loop) convergence rule. Ask
+  `_progress.md`. Never silent; never an issue without approval. A `Questions:` entry is a
+  question, not an instruction: never relay it as a fix; only a `CONFIRMED FINDING` from the
+  verification artifact becomes a ledger item the human dispositions. Ask
   **"commit & open PR?"** and
   proceed only on a clear yes, which records `_create_pr.approved`. Headless runs use
   `/shepherd-approve-create-pr`. This approves creating the PR, not merging it.
