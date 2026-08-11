@@ -30,9 +30,19 @@ def test_orchestrator_has_plan_mode_gate():
 
 
 def test_orchestrator_keeps_the_two_marker_gates():
-    # Design (before source edits) and create-PR (before git writes) are the only markers.
+    # Design (before source edits) and create-PR (before delivery) are the only markers.
     assert "_design.approved" in ORCH
     assert "_create_pr.approved" in ORCH
+
+
+def test_no_git_rules_beyond_the_gate():
+    # The gate times the PR; git itself is not shepherd's to manage. History does the
+    # bookkeeping: the reviewed diff is anchored at the design-gate commit, so mid-run
+    # commits are normal and no pre-run dirty-tree ledger exists.
+    assert "No git rules beyond the gate" in ORCH
+    assert "git diff <base_commit>" in ORCH
+    assert "before any git write" not in ORCH
+    assert "predirty" not in ORCH
 
 
 def test_orchestrator_has_no_triage_gate():
@@ -166,8 +176,8 @@ def test_design_gate_wait_state_is_resumable():
     assert "re-present the design + panel" in ORCH
 
 
-def test_orchestrator_checks_approved_commit_on_resume():
-    assert "approved_commit" in ORCH
+def test_orchestrator_checks_base_commit_on_resume():
+    assert "base_commit" in ORCH
 
 
 def test_orchestrator_archives_previous_run_on_fresh_start():
@@ -176,7 +186,9 @@ def test_orchestrator_archives_previous_run_on_fresh_start():
 
 def test_setup_writes_run_gitignore():
     assert ".shepherd/.gitignore" in ORCH
-    # Humans may commit config.json/registry.json; shepherd never stages .shepherd/ paths.
+    # Everything ignored, the .gitignore itself included — no untracked noise; sharing
+    # config is a manual opt-out. Shepherd never stages .shepherd/ paths.
+    assert "a single `*` line" in ORCH
     assert "never stages" in ORCH
 
 
@@ -298,16 +310,6 @@ def test_orchestrator_documents_oracle_commands():
     assert "lint:fix" in ORCH
     # The oracle's output is the test-results.txt reviewers and fulfillment read.
     assert "capturing output to `iter-N/test-results.txt`" in ORCH
-
-
-def test_orchestrator_documents_dirty_worktree_protection():
-    assert "git status --porcelain" in ORCH
-    # A dirty tree is allowed; pre-existing paths are recorded, kept out of
-    # the diff, and never committed.
-    assert "predirty.txt" in ORCH
-    assert "stay separable" in ORCH
-    # The run's own .shepherd files must not trip the check.
-    assert "ignore `.shepherd/`" in ORCH
 
 
 def test_orchestrator_finish_writes_plain_commit_and_pr():
