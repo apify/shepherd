@@ -80,7 +80,7 @@ flowchart TD
 ```
 
 There are two human gates: the **design gate** before source edits and the **create-PR
-confirm** before any git write. Triage is deliberately cheap and continues unless it
+confirm** before opening the PR. Triage is deliberately cheap and continues unless it
 recommends `DEFER` or `DECLINE`.
 
 At the design gate, shepherd writes `_panel.json` so each run gets the right reviewer
@@ -112,7 +112,7 @@ files or type a slash-command.
   `.shepherd/2-design.md`, `.shepherd/3-success-criteria.md`, and `.shepherd/_panel.json`
   (records the panel and writes the marker).
 - `/shepherd-approve-create-pr` is the human-only fallback for recording approval
-  before commit, push, and PR creation.
+  before the PR is opened.
 
 The design gate is generic and portable: shepherd presents the design, criteria, and
 panel and waits for one of two human-driven outcomes. **Approve** — a chat "yes" or
@@ -161,9 +161,10 @@ match. Approve the prompts once in that environment.
 ## Files
 
 Run data lives in `.shepherd/`; plugin tooling lives in `.claude/skills/`. Each run
-writes a `.shepherd/.gitignore` that keeps everything ignored except `config.json` and
-`registry.json` — committable, shareable team config (shepherd itself never commits
-`.shepherd/` paths); run evidence is summarized in the PR body instead.
+writes a `.shepherd/.gitignore` that ignores everything, itself included, so `.shepherd/`
+never shows up as untracked noise. To share `config.json` / `registry.json` with your
+team, add exceptions to that `.gitignore` by hand and commit them yourself — shepherd
+never commits `.shepherd/` paths; run evidence is summarized in the PR body instead.
 
 Human-facing files:
 

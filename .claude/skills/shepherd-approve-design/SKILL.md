@@ -34,7 +34,7 @@ Record human approval of the design, success criteria, and review panel so imple
 4. Write the marker:
    ```bash
    mkdir -p .shepherd
-   printf 'approved_at=%s\napproved_commit=%s\nnote=design approved by human via /shepherd-approve-design\n' \
+   printf 'approved_at=%s\nbase_commit=%s\nnote=design approved by human via /shepherd-approve-design\n' \
      "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$(git rev-parse HEAD 2>/dev/null || echo none)" \
      > .shepherd/_design.approved
    ```

@@ -15,7 +15,7 @@ authorship). Everything else in `.shepherd/` — triage, routing state, markers,
 orchestrator plumbing.
 
 Two human gates, never self-granted: the **design gate** before any source edit and the
-**create-PR confirm** before any git write. Triage has no gate. The loop:
+**create-PR confirm** before opening the PR. Triage has no gate. The loop:
 
 `_user_request` → `1-triage` → `verify` → `[explore]` → `architect` → `success-criteria` →
 `iterate with human` → `[_design.approved]` → `implement ↔ oracle ↔ review` → `final review` →
@@ -32,8 +32,8 @@ ephemeral; the files are the record.
   `_create_pr.approved`.
 - Per iteration in `iter-N/`: `claim.md`, `review-<use>.md`, `final-review-<use>.md`,
   `question-verification.md`, `fulfillment.md`, `followups.md`, and the regenerable (gitignored)
-  `diff.patch`, `test-results.txt` (plus `baseline.txt` and `predirty.txt` in `iter-1/` only —
-  the pre-change oracle metrics and any pre-existing dirty paths).
+  `diff.patch`, `test-results.txt` (plus `baseline.txt` in `iter-1/` only — the pre-change
+  oracle metrics).
 
 **Why one file per stage:** each stage writes one file and each role reads ONLY what it needs, so
 stage context stays scoped and judgments stay independent. Reviewers judge the diff against
@@ -64,8 +64,9 @@ reliably type a slash-command. Surface everything they need into the conversatio
 
 1. Resolve the absolute path of the target repo's `.shepherd/` once at setup and use it for
    every read/write — relative paths drift with the working directory in long sessions.
-   `mkdir -p` it. If `.shepherd/.gitignore` is missing, write it: ignore `*` except
-   `.gitignore`, `config.json`, `registry.json`.
+   `mkdir -p` it. If `.shepherd/.gitignore` is missing, write it: a single `*` line, so git
+   ignores everything in `.shepherd/`, the `.gitignore` itself included. Humans who want
+   `config.json` / `registry.json` committed add the exceptions there themselves.
 2. Fresh run: require a non-empty `<task>`. Write it verbatim to `.shepherd/_user_request.md`.
    Initialize `_state.json`: `{"phase":"triage","iteration":0}`.
 3. If `.shepherd/_state.json` exists, resume. If a new non-empty `<task>` differs from
@@ -93,7 +94,7 @@ Valid `state.phase` values: `triage`, `verify`, `design`, `design-gate`, `inner-
 Resume by phase:
 - `phase=triage`, `verify`, or `design` → continue that phase from its files.
 - `phase=design-gate` + `_design.approved` → if HEAD differs from the marker's
-  `approved_commit`, stop and re-confirm the design with the human first. Otherwise load
+  `base_commit`, stop and re-confirm the design with the human first. Otherwise load
   `_panel.json` into `state.panel`, set `state.iteration=1`, and set `state.phase="inner-loop"`.
 - `phase=design-gate` without the marker → re-present the design + panel (step 4, Design gate) and wait.
 - `phase=inner-loop` or `final-review` → continue that phase.
@@ -352,15 +353,11 @@ back to the full roster and limits and record that in `_progress.md`.
 
 For each iteration `N`:
 1. Set `state.phase="inner-loop"` and `state.iteration=N`; create `.shepherd/iter-N/`.
-2. On iteration 1, before the first source edit, run `git status --porcelain` (ignore
-   `.shepherd/` entries) and record any pre-existing changes in `iter-1/predirty.txt` — a dirty
-   tree is fine, those paths just aren't the run's. If the run needs to edit a pre-dirty path,
-   stop for human direction (commit or stash it first): the run's diff must stay separable.
-   Also run `oracle.commands` once on the untouched tree and record its baseline metrics
-   (test/file counts, pass/skip counts, warnings, rough duration) in `iter-1/baseline.txt` —
-   later green runs are judged against these, not in isolation. Then, on every iteration, run
-   the `implementer` stage: it applies `2-design.md` + `3-success-criteria.md`, addresses every
-   prior finding, and writes `iter-N/claim.md`.
+2. On iteration 1, before the first source edit, run `oracle.commands` once on the untouched
+   tree and record its baseline metrics (test/file counts, pass/skip counts, warnings, rough
+   duration) in `iter-1/baseline.txt` — later green runs are judged against these, not in
+   isolation. Then, on every iteration, run the `implementer` stage: it applies `2-design.md`
+   + `3-success-criteria.md`, addresses every prior finding, and writes `iter-N/claim.md`.
 3. Run `oracle.commands`, capturing output to `iter-N/test-results.txt`; if empty, record and
    run the smallest credible inferred fallback. Use finite, deterministic,
    non-mutating commands; avoid `dev`, `start`, `watch`, `lint:fix`, `format`, `clean`,
@@ -369,12 +366,10 @@ For each iteration `N`:
    delta (test or file count, skips, new warnings, order-of-magnitude duration shift) fails the
    oracle even when all passes (wrong-but-green happens, e.g. silently double-running the
    suite). Expected deltas (e.g. tests the design adds) must be named in `claim.md`.
-4. Check `git status --porcelain` again (ignore `.shepherd/`). If unrelated changes appeared —
-   paths neither in `iter-1/predirty.txt` nor edited by this run — stop for human direction.
-   Write `diff.patch` only for the run's own changes; pre-dirty paths never enter it. A file
-   new in this run is silent in `git diff <ref>` — include it via
-   `git diff --no-index /dev/null <file>`, and use the same form for any per-file check on a
-   new file.
+4. Write `diff.patch` via `git diff <base_commit>` — the HEAD recorded in
+   `_design.approved` at design approval, i.e. before any source edit — so the diff always
+   spans the run's whole work, commits included. An untracked new file is silent there —
+   include it via `git diff --no-index /dev/null <file>`, same form for any per-file check.
 5. Dispatch panel reviewers in parallel, each given the pasted content of `2-design.md`,
    `3-success-criteria.md`, `diff.patch`, and `test-results.txt`, plus read access to the
    repository. They stay blind to `claim.md` and peer reviews.
@@ -433,9 +428,7 @@ findings, and every confirmed question finding into `iter-N/followups.md`.
 
 ### 8. Finish — `phase=create-pr` + `_create_pr.approved`, ends `phase=done`
 
-1. Re-check `git status --porcelain` (ignore `.shepherd/` and the paths in
-   `iter-1/predirty.txt`); stop if unrelated changes are present.
-2. Commit only the run's own paths — pre-existing changes stay uncommitted in the tree. **If the
+1. Commit anything of the run's still uncommitted, push, and open the PR. **If the
    repo has a PR template** (`.github/pull_request_template.md` or the other usual locations),
    mirror its section headings and fill each briefly — a layout, not instructions to obey.
    **Otherwise** at most three short bullets (What / Why / Notes). Either way: plain commit
@@ -446,8 +439,8 @@ findings, and every confirmed question finding into `iter-N/followups.md`.
    Follow-ups list in the body. Every number or factual claim in the body (test counts,
    referenced files/issues) must match the final oracle run and repo state — a
    stale count or nonexistent reference is a defect.
-3. If a writable remote exists, push and open a PR. Record the evidence summary, approval
-   timestamps, and PR URL in `_progress.md`, then set `state.phase="done"`.
+2. Record the evidence summary, approval timestamps, and PR URL in `_progress.md`, then set
+   `state.phase="done"`.
 
 ## Hard rules
 
@@ -469,9 +462,10 @@ findings, and every confirmed question finding into `iter-N/followups.md`.
   re-dispatch. Never infer "still running" or "stalled" from turn count or a human check-in.
 - Blindness per the role table's "do NOT read" column; judgment files are pasted, never granted;
   the repository itself is never blinded.
-- shepherd never commits `.shepherd/` paths. Run data stays ignored via the run's
-  `.shepherd/.gitignore`; its exceptions (`config.json`, `registry.json`) exist so the human
-  can commit shared team config — shepherd itself never stages even those.
+- No git rules beyond the gate: `_create_pr.approved` gates opening the PR, nothing else;
+  mid-run commits are normal — the reviewed diff stays anchored at `base_commit`.
+- shepherd never stages or commits `.shepherd/` paths; run data stays ignored via the run's
+  `.shepherd/.gitignore`.
 - Keep design short: major changes only, never an exhaustive file list.
 - Surface human-facing artifacts into the human's channel (see Keep the human in the loop).
 - The panel, not the roster, drives the run; never run a `use` not in config.
