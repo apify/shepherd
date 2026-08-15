@@ -145,8 +145,9 @@ the plugin. Use the commands without a `shepherd:` prefix.
 
 ### Prompt reads during a run
 
-During a run, shepherd may read engine files under `.claude/skills/_vendored/` as
-instruction text. These read-only prompts are expected.
+During a run, shepherd may read engine files under `.claude/skills/_vendored/` and bundled
+template files under `.claude/skills/shepherd/templates/` as instruction text. These read-only
+prompts are expected.
 
 If you copied `.claude/skills/` into your repo or attached this repo, allowlist the
 prompt reads in `.claude/settings.json`:
