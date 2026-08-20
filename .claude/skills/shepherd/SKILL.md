@@ -128,6 +128,12 @@ Method line omitted. For stage key `K` with assignment `S`:
 > {role.standing} (reviewer and final-reviewer roles only; omit the line otherwise).
 > **Write:** `{role.writes}` in this format: {role.format}.
 
+`{role.standing}` is `templates/standing-checks.md`'s content, pasted verbatim regardless of what
+the design emphasizes. `{role.format}` is the role's own `##` section of `templates/formats.md`,
+except `architect`, whose format is `templates/design.md` pasted directly. All three paths resolve
+relative to this skill's own directory — the same convention as the registry's `../_vendored/`
+engine paths.
+
 4. Completion signal: dispatch prefers blocking; when backgrounded, or fanning reviewers out in
    parallel, `{role.writes}` on disk is the completion signal everywhere it's dispatched. File
    presence is the floor; a terminal-marker format (a ledger verdict line, `VERDICT:`) isn't done
@@ -144,36 +150,17 @@ If the dispatched agent has no write access, it returns the artifact verbatim as
 message and the orchestrator persists it to `{role.writes}` **unchanged** — a mechanical relay,
 not authorship; the no-judgment-files rule is not violated. Note the relay in `_progress.md`.
 
-`{role.standing}` for reviewer and final-reviewer roles always carries these checks, regardless
-of what the design emphasizes: committed code must not reference run-internal artifacts
-(`.shepherd/`, plan files, session paths); cruft preserved by a faithful migration is still a
-finding — "byte-identical" instructions cover assertions/behavior, not carried-over dead code;
-a comment the diff adds, edits, or moves must still be true of the code it now describes —
-stale references, wrong claims, comments restating the obvious, and comments longer than the
-code they describe are findings; also flag AI-slop — abnormal defensive try/catch (defensive
-code at trust boundaries is fine), type-escape casts (`any` or equivalent), deep nesting that
-should be early returns, and other patterns inconsistent with the surrounding file. Also require
-these three checks: a conditional branch or guard the diff adds must be test-exercised on both
-sides, and a rewritten path must be exercised against the input classes the old path handled —
-an untested new arm is a finding; a behavior delta versus design or base that the design leaves
-unstated is a finding, including a changed helper whose default/no-arg semantics silently invert;
-and whatever the diff names, places, or exports must follow the repo's stated conventions doc,
-with a new module importing no heavier layer than its role needs. Every finding carries evidence
-checked against the repository, and every identifier it relies on must exist; a suspicion you
-cannot ground is a question, not a finding — it belongs in your `Questions:` section, never as a
-finding and never dropped.
-
-| role | reads | do NOT read | writes | format |
-|------|-------|-------------|--------|--------|
-| `verify` | `_user_request.md`, `1-triage.md`, codebase, referenced issue, current upstream sources for any claim resting on facts outside the repo | `2-design.md`, `3-success-criteria.md` | `_request_fact_check.md` | claim ledger: every request claim tagged `VALID \| STALE \| LIKELY-FIXED \| UNVERIFIABLE` with evidence (claims resting on facts outside the repo: check current upstream sources, not model memory), plus a one-line verdict — never empty |
-| `explorer` | codebase | `.shepherd/` internals | `_codebase_map.md` | ≤1 page: key files · patterns · data flow · risks |
-| `architect` | `_user_request.md`, `1-triage.md`, `_request_fact_check.md`, `_codebase_map.md` if present, `_design_feedback.md` if present (settled human decisions — constraints, not suggestions), codebase; on a revision pass also its previous `2-design.md` | `3-success-criteria.md` | `2-design.md` | the design template in step 3 (Design) |
-| `success_criteria` | pasted content of the "What we're solving" and "How it will work" sections of `2-design.md`, plus `_user_request.md`, `1-triage.md`, and `_request_fact_check.md` (verified facts — real paths, real coverage gaps — so criteria reference reality instead of guessing; it contains no solution) — nothing else | the rest of `2-design.md` (the solution), `claim.md` | `3-success-criteria.md` | numbered, testable criteria — each verifiable by a command or an observable behavior; no solution details |
-| `implementer` | `2-design.md`, `3-success-criteria.md`, `_request_fact_check.md`, `_codebase_map.md` if present, all prior `iter-*/review-*.md` + `final-review-*.md` + `fulfillment.md` | — | source edits + `iter-N/claim.md` | what done · every finding fixed, none skipped or deferred · for a behavior change, add a regression test — ideally shown red before the fix and green after, with the red→green noted in `claim.md` — never weaken/delete tests |
-| `reviewer` | pasted content of `2-design.md`, `3-success-criteria.md`, `iter-N/diff.patch`, `iter-N/test-results.txt`, plus the repository itself (working tree, git history, read-only commands) — no other `.shepherd/` files | `claim.md`, peer reviewers' output | `iter-N/review-<use>.md` | first line `VERDICT: PASS\|FAIL` (PASS = zero findings, `pre-existing`-tagged ones excepted), then findings tagged `blocker\|major\|minor\|nit`; a defect in adjacent code that predates the diff carries the extra tag `pre-existing` — reported, never silenced, routed to step 7 (Fulfillment + create-PR confirm); then a `Questions:` section — every suspicion you could not ground, or `none` — which never blocks PASS and is surfaced to the human at the same gate |
-| `final_reviewer` | same as reviewer, but judging the post-fix integrated state: interactions with unchanged code, consumer/contract impact, doc/AGENTS staleness — not a second pass over the patch | `claim.md`, peer reviewers' output | `iter-N/final-review-<use>.md` | same verdict format as reviewer |
-| `fulfillment` | pasted content of `3-success-criteria.md`, `iter-N/diff.patch`, `iter-N/test-results.txt`, `iter-N/claim.md`, plus the working tree (may run the non-mutating check a criterion names) | `2-design.md` solution details, review files | `iter-N/fulfillment.md` | first line `VERDICT: PASS\|FAIL`, then each criterion `MET \| NOT MET` with evidence |
-| `followups` | pasted Scope split, all review files, accepted-open-finding decisions from `_progress.md`, `question-verification.md` if present, plus open issues and PRs (`gh issue list`, `gh pr list`) — cite an existing issue it duplicates or extends | `3-success-criteria.md`, `claim.md` | `iter-N/followups.md` | ledger: item · origin (`scope-split` \| review file \| `question-verification`) · proposed disposition `fix-here \| issue \| pr-note \| drop` · one-line why; include every pre-existing, human-accepted open, and confirmed-question finding; never empty — "none" explicitly |
+| role | reads | do NOT read | writes |
+|------|-------|-------------|--------|
+| `verify` | `_user_request.md`, `1-triage.md`, codebase, referenced issue, current upstream sources for any claim resting on facts outside the repo | `2-design.md`, `3-success-criteria.md` | `_request_fact_check.md` |
+| `explorer` | codebase | `.shepherd/` internals | `_codebase_map.md` |
+| `architect` | `_user_request.md`, `1-triage.md`, `_request_fact_check.md`, `_codebase_map.md` if present, `_design_feedback.md` if present (settled human decisions — constraints, not suggestions), codebase; on a revision pass also its previous `2-design.md` | `3-success-criteria.md` | `2-design.md` |
+| `success_criteria` | pasted content of the "What we're solving" and "How it will work" sections of `2-design.md`, plus `_user_request.md`, `1-triage.md`, and `_request_fact_check.md` (verified facts — real paths, real coverage gaps — so criteria reference reality instead of guessing; it contains no solution) — nothing else | the rest of `2-design.md` (the solution), `claim.md` | `3-success-criteria.md` |
+| `implementer` | `2-design.md`, `3-success-criteria.md`, `_request_fact_check.md`, `_codebase_map.md` if present, all prior `iter-*/review-*.md` + `final-review-*.md` + `fulfillment.md` | — | source edits + `iter-N/claim.md` |
+| `reviewer` | pasted content of `2-design.md`, `3-success-criteria.md`, `iter-N/diff.patch`, `iter-N/test-results.txt`, plus the repository itself (working tree, git history, read-only commands) — no other `.shepherd/` files | `claim.md`, peer reviewers' output | `iter-N/review-<use>.md` |
+| `final_reviewer` | same as reviewer, but judging the post-fix integrated state: interactions with unchanged code, consumer/contract impact, doc/AGENTS staleness — not a second pass over the patch | `claim.md`, peer reviewers' output | `iter-N/final-review-<use>.md` |
+| `fulfillment` | pasted content of `3-success-criteria.md`, `iter-N/diff.patch`, `iter-N/test-results.txt`, `iter-N/claim.md`, plus the working tree (may run the non-mutating check a criterion names) | `2-design.md` solution details, review files | `iter-N/fulfillment.md` |
+| `followups` | pasted Scope split, all review files, accepted-open-finding decisions from `_progress.md`, `question-verification.md` if present, plus open issues and PRs (`gh issue list`, `gh pr list`) — cite an existing issue it duplicates or extends | `3-success-criteria.md`, `claim.md` | `iter-N/followups.md` |
 
 ### Model tiering
 
@@ -247,36 +234,10 @@ Otherwise set `state.phase="design"`.
   implementer reuse it. Skip for `trivial`/`small`, or when the verify fact-check already maps
   the files and the change is mechanical or localized (deletion, rename, inlining) — note why
   in `_progress.md`.
-- Dispatch the `architect` stage to write `.shepherd/2-design.md`. ~1 page, no code blocks, no
-  file:line dumps. Product first, implementation second. A design that unifies a
-  style/format/template must pin it with one fully-worked example (a complete sentence or
-  instance showing placement and punctuation), not only named parts:
-
-  ```
-  ## What we're solving      (product: the problem and who hits it)
-  ## How it will work        (product: user-visible behavior after the change)
-  ## Proposed solution       (implementation approach)
-  ## Alternatives + the call
-  ## Major changes           (key files/areas only — never an exhaustive file list)
-  ## Scope split             (This PR · Prerequisite refactor · Follow-ups)
-  ## Risks
-  ## Open questions          (real decisions only — each: options + recommended answer; no filler)
-  ## Decisions               (from _design_feedback.md when it exists; otherwise starts empty)
-  ```
-
-  Facts verifiable in the repo or issue belong in the design body, not Open questions — ask as
-  many decisions as the design needs, no minimum or maximum.
-
-  Scope split partitions the work: This PR (what the diff will contain), Prerequisite refactor
-  (restructuring the change needs — lands first, as its own PR, never as a commit inside the
-  main PR), Follow-ups (adjacent debt or gaps found during exploration that this PR
-  deliberately leaves). Before declaring Prerequisite refactor empty, check the repo's
-  refactor-separation policy (CLAUDE.md / CONTRIBUTING): where the repo mandates
-  refactor-lands-first, any "refactor first, then the change" structure IS a non-empty
-  prerequisite — calling it internal commit sequencing is a design defect. A non-empty
-  Prerequisite refactor is an explicit gate decision: surface it to the human and proceed only
-  on their confirmed choice — deliver the prerequisite first, or (only on the human's explicit
-  pick, never as the default) fold it in.
+- Dispatch the `architect` stage to write `.shepherd/2-design.md`, following `templates/design.md`
+  as its format. A non-empty Prerequisite refactor is an explicit gate decision: surface it to
+  the human and proceed only on their confirmed choice — deliver the prerequisite first, or
+  (only on the human's explicit pick, never as the default) fold it in.
 - Dispatch the `success_criteria` stage: paste it ONLY the two product sections of the design
   (plus request, triage, and the fact-check) and have it write `.shepherd/3-success-criteria.md`. It defines
   "done" independently — the architect never reads it, and it never sees the solution.
@@ -452,7 +413,8 @@ findings, and every confirmed question finding into `iter-N/followups.md`.
 - Never self-approve a gate. Write `_design.approved` / `_create_pr.approved` only on an explicit
   human approval — accepting the plan dialog, a clear chat "yes", or the approval skill; a
   rejected/edited plan, tool error, closed stream, or "continue" message is NEVER approval. The
-  on-disk marker is the only approval signal.
+  on-disk marker is the only approval signal. The agent never stands in for the human's side of a
+  gate.
 - Triage has no gate; iterate the design with the human before the gate — chat is never the record.
 - Verify runs on every run; the claim ledger is never empty.
 - Never report a dispatched stage as still running, and never end a turn waiting on one, without

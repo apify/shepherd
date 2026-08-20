@@ -1,11 +1,17 @@
 import re
 
-from conftest import REPO_ROOT
+from conftest import REPO_ROOT, load_json
 
 ORCH = (REPO_ROOT / ".claude/skills/shepherd/SKILL.md").read_text()
 APPROVE_DESIGN = (
     REPO_ROOT / ".claude/skills/shepherd-approve-design/SKILL.md"
 ).read_text()
+
+TEMPLATES_DIR = REPO_ROOT / ".claude/skills/shepherd/templates"
+STANDING = (TEMPLATES_DIR / "standing-checks.md").read_text()
+DESIGN = (TEMPLATES_DIR / "design.md").read_text()
+FORMATS = (TEMPLATES_DIR / "formats.md").read_text()
+REGISTRY = load_json(REPO_ROOT / ".claude/skills/shepherd/registry.base.json")
 
 
 def test_orchestrator_reads_config_and_registry():
@@ -100,8 +106,8 @@ def test_orchestrator_documents_why_files_are_separate():
 
 
 def test_design_is_product_first():
-    assert "Product first, implementation second" in ORCH
-    assert "## How it will work" in ORCH
+    assert "Product first, implementation second" in DESIGN
+    assert "## How it will work" in DESIGN
     assert "product questions first" in ORCH
 
 
@@ -118,7 +124,7 @@ def test_design_iteration_uses_feedback_file_and_revision_passes():
     assert "one question at a time" in ORCH
     assert "recommended answer" in ORCH
     assert "Open questions is empty" in ORCH
-    assert "Decisions" in ORCH
+    assert "## Decisions" in DESIGN
     # Batched rounds; the orchestrator writes only the feedback transcript, verbatim.
     assert "Batch a round of answers" in ORCH
     assert "verbatim" in ORCH and "_design_feedback.md" in ORCH
@@ -245,7 +251,7 @@ def test_orchestrator_converges_on_zero_findings():
 def test_fulfillment_check_gates_the_pr():
     # An explicit criteria-vs-reality check runs before the create-PR confirm.
     assert "fulfillment.md" in ORCH
-    assert "MET | NOT MET" in ORCH or "MET \\| NOT MET" in ORCH
+    assert "MET | NOT MET" in FORMATS
     assert "reopens the inner loop" in ORCH
     assert "No PR without fulfillment" in ORCH
 
@@ -322,10 +328,10 @@ def test_orchestrator_finish_writes_plain_commit_and_pr():
 
 
 def test_open_questions_are_real_decisions():
-    assert "real decisions only" in ORCH
-    assert "no filler" in ORCH
-    assert "no minimum or maximum" in ORCH
-    assert "Facts verifiable" in ORCH
+    assert "real decisions only" in DESIGN
+    assert "no filler" in DESIGN
+    assert "no minimum or maximum" in DESIGN
+    assert "Facts verifiable" in DESIGN
 
 
 def test_design_iterate_grills_decisions():
@@ -337,10 +343,10 @@ def test_design_iterate_grills_decisions():
 
 
 def test_standing_checks_include_ai_slop():
-    assert "comments longer than the" in ORCH
-    assert "abnormal defensive" in ORCH
-    assert "type-escape casts" in ORCH
-    assert "early returns" in ORCH
+    assert "comments longer than the" in STANDING
+    assert "abnormal defensive" in STANDING
+    assert "type-escape casts" in STANDING
+    assert "early returns" in STANDING
 
 
 def test_triage_defers_underspecified_requests():
@@ -350,7 +356,7 @@ def test_triage_defers_underspecified_requests():
 
 def test_verify_checks_external_spec_claims():
     assert "facts outside the repo" in ORCH
-    assert "not model memory" in ORCH
+    assert "not model memory" in FORMATS
 
 
 def test_step_references_name_their_target():
@@ -371,24 +377,34 @@ def test_step_headings_declare_their_phase():
 
 
 def test_standing_checks_cover_new_arms_and_disclosure():
-    assert "these three checks" in ORCH
-    assert re.search(r"test-exercised on both\s+sides", ORCH)
-    assert "input classes the old path handled" in ORCH
-    assert "silently invert" in ORCH
-    assert "conventions doc" in ORCH
+    assert "these three checks" in STANDING
+    assert re.search(r"test-exercised on both\s+sides", STANDING)
+    assert "input classes the old path handled" in STANDING
+    assert "silently invert" in STANDING
+    assert "conventions doc" in STANDING
 
 
 def test_scope_split_and_followups_ledger():
-    assert "## Scope split" in ORCH
+    # Retained inline: the explicit gate-decision obligation on a non-empty Prerequisite
+    # refactor, plus the followups ledger / approval pins — orchestrator-obeyed procedure.
     assert "Prerequisite refactor" in ORCH
     assert "explicit gate decision" in ORCH
-    assert "refactor-separation" in ORCH
     assert "never as the default" in ORCH
     assert "followups.md" in ORCH
     assert "pre-existing" in ORCH
     assert "never instructs reviewers not to report" in ORCH
     assert "only on human approval" in ORCH
     assert "never an issue without approval" in ORCH
+
+
+def test_design_scope_split_wording_and_fog_test():
+    # The scope-split explanatory paragraph (minus the gate-decision sentences above) and the
+    # fog-test wayfinder borrowing live in the architect's format template.
+    assert "## Scope split" in DESIGN
+    assert "Prerequisite refactor" in DESIGN
+    assert "refactor-separation" in DESIGN
+    assert "record it as fog" in DESIGN
+    assert "never a forced Open question" in DESIGN
 
 
 def test_followups_stage_is_integrated_with_configuration_and_resume():
@@ -418,10 +434,10 @@ def test_reviewer_questions_slot_keeps_ungrounded_suspicion_visible():
     # Findings must be grounded, but grounding must not become a silent-drop channel: PASS is
     # defined as zero findings, so an ungroundable suspicion needs its own slot in the reviewer
     # format and a route to the human, or the zero-findings convergence rule is trivially gamed.
-    assert "every identifier it relies on must exist" in ORCH
-    assert "a question, not a finding" in ORCH
-    assert "`Questions:` section" in ORCH
-    assert "never blocks PASS" in ORCH
+    assert "every identifier it relies on must exist" in STANDING
+    assert "a question, not a finding" in STANDING
+    assert "`Questions:` section" in STANDING
+    assert "never blocks PASS" in FORMATS
     assert "every reviewer `Questions:` entry" in ORCH
 
 
@@ -471,3 +487,51 @@ def test_new_files_are_diffed_with_no_index():
     # git diff <ref> -- <path> is silent for untracked files; a per-file check on five new
     # files reported "unchanged" and masked a leftover workaround (run #1140).
     assert "git diff --no-index /dev/null <file>" in ORCH
+
+
+def test_skill_names_all_three_template_paths():
+    # issue #27: the dispatch section must name each bundled template file by path, so the
+    # source of {role.standing} and {role.format} is discoverable by reading SKILL.md alone.
+    assert "templates/standing-checks.md" in ORCH
+    assert "templates/design.md" in ORCH
+    assert "templates/formats.md" in ORCH
+
+
+def test_template_files_exist_and_are_non_empty():
+    # Loading each as a module-level constant above already enforces existence (a missing file
+    # raises FileNotFoundError at collection); assert non-emptiness explicitly too, cheaply.
+    for name in ("standing-checks.md", "design.md", "formats.md"):
+        path = TEMPLATES_DIR / name
+        assert path.stat().st_size > 0
+
+
+def test_no_template_references_another_template():
+    # References stay one level deep: no bundled template may point at another (or at any
+    # templates/ path) — the architect's format is templates/design.md pasted directly, stated
+    # in SKILL.md, never as a pointer inside a template.
+    for content in (STANDING, DESIGN, FORMATS):
+        assert "templates/" not in content
+
+
+def test_formats_has_a_section_per_registry_role_except_architect():
+    roles = set(REGISTRY["stage_roles"].values())
+    roles.discard("architect")
+    assert roles, "expected at least one non-architect role"
+    for role in roles:
+        assert f"## {role}" in FORMATS
+    # architect's format is design.md pasted directly, not a formats.md section
+    assert "## architect" not in FORMATS
+
+
+def test_index_not_a_store_wayfinder_borrowing():
+    # Design's ## Decisions section and the followups ledger are each documented as an index,
+    # not a store: one-line gist plus a pointer, detail lives in exactly one place.
+    sentence = "This is an index, not a store"
+    assert sentence in DESIGN
+    assert sentence in FORMATS
+
+
+def test_hitl_sentence_in_hard_rules():
+    # Hard rules carry a one-sentence HITL summary: no dispatched agent, nor the orchestrator
+    # itself, answers on the human's behalf at a gate.
+    assert "The agent never stands in for the human's side of a" in ORCH
