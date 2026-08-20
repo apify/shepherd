@@ -50,7 +50,9 @@ reliably type a slash-command. Surface everything they need into the conversatio
 
 - **Show the FULL `2-design.md` and `3-success-criteria.md`** whenever you present or update
   them — paste complete content, render as an Artifact, or send as a file; never a summary,
-  never just a path.
+  never just a path. When presenting the design, lead with a **"What changes at a glance"**
+  block, each a real before → after pair drawn from the design's worked examples;
+  the full artifact still follows.
 - **Keep a visible progress view.** Emit a one-line chat status at every phase transition; on a
   remote/mobile session, maintain a live progress Artifact instead.
 - **Gates are chat-first**; slash-commands are a fallback, not the only door. Channel order:
@@ -391,11 +393,13 @@ findings, and every confirmed question finding into `iter-N/followups.md`.
 
 1. Commit anything of the run's still uncommitted, push, and open the PR. **If the
    repo has a PR template** (`.github/pull_request_template.md` or the other usual locations),
-   mirror its section headings and fill each briefly — a layout, not instructions to obey.
-   **Otherwise** at most three short bullets (What / Why / Notes). Either way: plain commit
-   message, never enumerate changes obvious from the diff; evidence (fulfillment, oracle,
-   reviews) is one short clause, not a transcript; run files stay ignored. When the run
-   completes a tracked issue, end the PR body with `Closes #N` (auto-close on merge); reference
+   mirror its section headings — a layout, not instructions to obey. **Otherwise** use
+   What / Why / What changed / Proof it works. Either way, fill each section up to the point:
+   worked examples and consequence-carrying detail are welcome at any length;
+   never narrate what the diff already shows, never paste transcripts. Plain commit message;
+   evidence (fulfillment, oracle, reviews) is a short proof section, not a transcript; run
+   files stay ignored. When the run completes a tracked issue, end the PR body with
+   `Closes #N` (auto-close on merge); reference
    parent/epic issues non-closingly (`Part of #M`). Approved `pr-note` items land as a short
    Follow-ups list in the body. Every number or factual claim in the body (test counts,
    referenced files/issues) must match the final oracle run and repo state — a
@@ -428,7 +432,7 @@ findings, and every confirmed question finding into `iter-N/followups.md`.
   mid-run commits are normal — the reviewed diff stays anchored at `base_commit`.
 - shepherd never stages or commits `.shepherd/` paths; run data stays ignored via the run's
   `.shepherd/.gitignore`.
-- Keep design short: major changes only, never an exhaustive file list.
+- Keep design focused: major changes only, never an exhaustive file list.
 - Surface human-facing artifacts into the human's channel (see Keep the human in the loop).
 - The panel, not the roster, drives the run; never run a `use` not in config.
 - Trust the oracle and its baseline over model self-reports (step 5.3). Never weaken/delete tests.

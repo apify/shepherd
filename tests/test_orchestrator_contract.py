@@ -111,6 +111,16 @@ def test_design_is_product_first():
     assert "product questions first" in ORCH
 
 
+def test_design_carries_worked_examples():
+    # Examples are behavioral instances of the artifact, one per consequence-carrying decision.
+    assert "must carry worked examples" in DESIGN
+    assert "before → after" in DESIGN
+    assert "no implementation code" in DESIGN
+    # Design presentations lead with a before→after at-a-glance block; full paste still follows.
+    assert '"What changes at a glance"' in ORCH
+    assert "the full artifact still follows" in ORCH
+
+
 def test_success_criteria_are_blind():
     # Architect never reads criteria; criteria author never sees the solution.
     assert "architect never reads it" in ORCH
@@ -319,11 +329,11 @@ def test_orchestrator_documents_oracle_commands():
 
 
 def test_orchestrator_finish_writes_plain_commit_and_pr():
-    # Short PR body: template headings filled briefly, else ≤3 bullets; no essay / diff narration.
-    assert "three short bullets" in ORCH
-    assert "What / Why / Notes" in ORCH
-    assert "obvious from the diff" in ORCH
-    assert "one short clause" in ORCH
+    # PR body: substance (worked examples) at any length; fluff (diff narration, transcripts) banned.
+    assert "What / Why / What changed / Proof it works" in ORCH
+    assert "welcome at any length" in ORCH
+    assert "never narrate what the diff already shows" in ORCH
+    assert "never paste transcripts" in ORCH
     assert "PR URL" in ORCH
 
 
