@@ -1,6 +1,17 @@
-~1 page, no code blocks, no file:line dumps. Product first, implementation second. A design that
+~1 page of prose plus worked examples; no implementation code, no file:line dumps.
+Product first, implementation second. "How it will work" must carry worked examples: concrete
+before → after (or input → output) instances of the primary artifact the change touches — one
+per decision with design or maintainability consequences, each stating its consequence. The
+example is the argument, not decoration: the reviewer checks the decision from the instance
+alone, without reading code. Not a gallery — a case that pins no decision is cut. A design that
 unifies a style/format/template must pin it with one fully-worked example (a complete sentence or
-instance showing placement and punctuation), not only named parts:
+instance showing placement and punctuation), not only named parts. For instance, a naming change
+pins its escaping decision like this:
+
+```
+the.unc/my-mcp-server + add  →  the-dot-unc--my-mcp-server--add
+— dots must escape, or two different Actors collide on one exposed name.
+```
 
 ```
 ## What we're solving      (product: the problem and who hits it)
