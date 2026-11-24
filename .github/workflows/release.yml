@@ -24,7 +24,9 @@ concurrency:
 jobs:
   release:
     runs-on: ubuntu-latest
-    environment: automation
+    environment:
+      name: automation
+      deployment: false
     steps:
       - uses: actions/checkout@v4
         with:
